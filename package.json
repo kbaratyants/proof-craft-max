@@ -1,0 +1,14 @@
+{
+  "name": "proof-craft",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "npm --prefix backend test",
+    "typecheck": "npm --prefix backend exec -- tsc --noEmit && npm --prefix frontend run typecheck",
+    "visual:test": "npm --prefix frontend run visual:test",
+    "backend:dev": "npm --prefix backend run start:dev",
+    "bot:dev": "npm --prefix backend run start:bot:dev",
+    "frontend:dev": "npm --prefix frontend run dev",
+    "docker:up": "docker compose up --build"
+  }
+}
