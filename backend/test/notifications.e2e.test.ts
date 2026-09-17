@@ -1,0 +1,387 @@
+import assert from 'node:assert/strict'
+import crypto from 'node:crypto'
+import { rm } from 'node:fs/promises'
+import test, { after, before } from 'node:test'
+import Database from 'better-sqlite3'
+import { Test } from '@nestjs/testing'
+import { FastifyAdapter, type NestFastifyApplication } from '@nestjs/platform-fastify'
+import { AppModule } from '../src/app.module.js'
+import { createTestDatabase } from './support/test-database.js'
+
+const botToken = '123456:nest-notifications-contract-token'
+const webSessionToken = 'nest-notifications-web-token'
+const studentMaxUserId = 7101
+
+let temporaryRoot: string
+let databasePath: string
+let app: NestFastifyApplication
+let fixtureIds: {
+  homework: number
+  student: number
+  aliceUnread: number
+  bobUnread: number
+}
+
+const seedNotifications = (path: string): typeof fixtureIds => {
+  const db = new Database(path)
+  const insertUser = db.prepare(`
+    INSERT INTO users (max_user_id, first_name, role)
+    VALUES (?, ?, 'student')
+  `)
+  const aliceUserId = Number(insertUser.run(studentMaxUserId, 'Alice').lastInsertRowid)
+  const bobUserId = Number(insertUser.run(7102, 'Bob').lastInsertRowid)
+  db.prepare(`INSERT INTO user_roles (user_id, role) VALUES (?, 'student')`).run(aliceUserId)
+  db.prepare(`INSERT INTO user_roles (user_id, role) VALUES (?, 'student')`).run(bobUserId)
+
+  const studentId = Number(
+    db.prepare(`
+      INSERT INTO students (user_id, full_name, phone, lessons_count, status)
+      VALUES (?, 'Алиса', '+70000000000', 1, 'studying')
+    `).run(aliceUserId).lastInsertRowid,
+  )
+  const homeworkId = Number(
+    db.prepare(`
+      INSERT INTO homeworks (student_id, lesson_number, content_type, status)
+      VALUES (?, 1, 'text', 'approved')
+    `).run(studentId).lastInsertRowid,
+  )
+
+  const insertNotification = db.prepare(`
+    INSERT INTO app_notifications (user_id, kind, body, payload, read_at, created_at)
+    VALUES (?, ?, ?, ?, ?, ?)
+  `)
+  const aliceUnread = Number(insertNotification.run(
+    aliceUserId,
+    'homework_update',
+    'Работа обновлена',
+    JSON.stringify({ homework_id: homeworkId, student_id: studentId }),
+    null,
+    '2026-09-22 12:00:00',
+  ).lastInsertRowid)
+  insertNotification.run(
+    aliceUserId,
+    'read_notice',
+    'Прочитано',
+    JSON.stringify({ homework_id: homeworkId }),
+    '2026-09-22 11:30:00',
+    '2026-09-21 12:00:00',
+  )
+  insertNotification.run(
+    aliceUserId,
+    'invalid_payload',
+    'Без payload',
+    '{broken',
+    '2026-09-20 11:30:00',
+    '2026-09-20 12:00:00',
+  )
+  insertNotification.run(
+    aliceUserId,
+    'expired',
+    'Устаревшее',
+    null,
+    '2020-01-01 13:00:00',
+    '2020-01-01 12:00:00',
+  )
+  const bobUnread = Number(insertNotification.run(
+    bobUserId,
+    'other_user',
+    'Чужое',
+    null,
+    null,
+    '2026-09-23 12:00:00',
+  ).lastInsertRowid)
+
+  const tokenHash = crypto.createHash('sha256').update(webSessionToken).digest('hex')
+  db.prepare(`
+    INSERT INTO web_sessions (user_id, token_hash, expires_at)
+    VALUES (?, ?, datetime('now', '+1 day'))
+  `).run(aliceUserId, tokenHash)
+  db.close()
+  return { homework: homeworkId, student: studentId, aliceUnread, bobUnread }
+}
+
+const buildMaxInitData = (maxUserId: number): string => {
+  const params = new URLSearchParams({
+    auth_date: String(Math.floor(Date.now() / 1000)),
+    query_id: `notifications-${maxUserId}`,
+    user: JSON.stringify({ id: maxUserId, first_name: 'Notifications' }),
+  })
+  const dataCheckString = [...params.entries()]
+    .sort(([left], [right]) => left.localeCompare(right))
+    .map(([key, value]) => `${key}=${value}`)
+    .join('\n')
+  const secretKey = crypto.createHmac('sha256', 'WebAppData').update(botToken).digest()
+  params.set('hash', crypto.createHmac('sha256', secretKey).update(dataCheckString).digest('hex'))
+  return params.toString()
+}
+
+const authHeaders = (maxUserId = studentMaxUserId): Record<string, string> => ({
+  'x-max-init-data': buildMaxInitData(maxUserId),
+})
+
+before(async () => {
+  const fixture = await createTestDatabase('proof-craft-notifications-')
+  temporaryRoot = fixture.temporaryRoot
+  databasePath = fixture.databasePath
+  fixtureIds = seedNotifications(databasePath)
+  process.env.DATABASE_URL = `file:${databasePath}`
+  process.env.MAX_BOT_TOKEN = botToken
+  process.env.MAX_WEBAPP_AUTH = 'strict'
+  process.env.APP_NOTIFICATIONS_RETENTION_DAYS = '90'
+
+  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile()
+  app = moduleRef.createNestApplication<NestFastifyApplication>(new FastifyAdapter())
+  await app.init()
+  await app.getHttpAdapter().getInstance().ready()
+})
+
+after(async () => {
+  await app?.close()
+  if (temporaryRoot) await rm(temporaryRoot, { recursive: true, force: true })
+})
+
+test('GET /api/notifications возвращает свои записи, payload и unread_count', async () => {
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/notifications?max_user_id=${studentMaxUserId}&limit=3`,
+    headers: authHeaders(),
+  })
+  assert.equal(response.statusCode, 200)
+  const body = response.json() as {
+    ok: boolean
+    data: {
+      unread_count: number
+      notifications: Array<Record<string, unknown>>
+    }
+  }
+  assert.equal(body.ok, true)
+  assert.equal(body.data.unread_count, 1)
+  assert.deepEqual(
+    body.data.notifications.map(({ id, ...notification }) => {
+      assert.ok(Number.isInteger(id) && Number(id) > 0)
+      return notification
+    }),
+    [
+      {
+        kind: 'homework_update',
+        body: 'Работа обновлена',
+        payload: { homework_id: fixtureIds.homework, student_id: fixtureIds.student },
+        read_at: null,
+        created_at: '2026-09-22 12:00:00',
+      },
+      {
+        kind: 'read_notice',
+        body: 'Прочитано',
+        payload: { homework_id: fixtureIds.homework },
+        read_at: '2026-09-22 11:30:00',
+        created_at: '2026-09-21 12:00:00',
+      },
+      {
+        kind: 'invalid_payload',
+        body: 'Без payload',
+        payload: null,
+        read_at: '2026-09-20 11:30:00',
+        created_at: '2026-09-20 12:00:00',
+      },
+    ],
+  )
+
+  const db = new Database(databasePath, { readonly: true })
+  const expiredRow = db
+    .prepare(`SELECT COUNT(*) AS count FROM app_notifications WHERE kind = 'expired'`)
+    .get() as { count: number } | undefined
+  db.close()
+  assert.equal(Number(expiredRow?.count ?? 0), 0)
+})
+
+test('notifications limit не ограничивает unread_count', async () => {
+  const response = await app.inject({
+    method: 'GET',
+    url: `/api/notifications?max_user_id=${studentMaxUserId}&limit=1`,
+    headers: authHeaders(),
+  })
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().data.notifications.length, 1)
+  assert.equal(response.json().data.unread_count, 1)
+})
+
+test('notifications принимает web-session и nginx-путь', async () => {
+  const response = await app.inject({
+    method: 'GET',
+    url: `/notifications?max_user_id=${studentMaxUserId}&limit=3`,
+    headers: { 'x-web-session': webSessionToken },
+  })
+  assert.equal(response.statusCode, 200)
+  assert.equal(response.json().data.notifications.length, 3)
+})
+
+test('notifications сохраняет auth, query и unknown-user ошибки', async (context) => {
+  await context.test('нет credential', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/notifications?max_user_id=${studentMaxUserId}`,
+    })
+    assert.equal(response.statusCode, 401)
+  })
+
+  await context.test('credential не совпадает', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/notifications?max_user_id=${studentMaxUserId}`,
+      headers: authHeaders(7102),
+    })
+    assert.equal(response.statusCode, 403)
+  })
+
+  await context.test('некорректный limit', async () => {
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/notifications?max_user_id=${studentMaxUserId}&limit=81`,
+      headers: authHeaders(),
+    })
+    assert.equal(response.statusCode, 400)
+    assert.deepEqual(response.json(), {
+      ok: false,
+      error: 'Некорректные параметры запроса.',
+    })
+  })
+
+  await context.test('подписанный неизвестный пользователь', async () => {
+    const unknownMaxUserId = 7999
+    const response = await app.inject({
+      method: 'GET',
+      url: `/api/notifications?max_user_id=${unknownMaxUserId}`,
+      headers: authHeaders(unknownMaxUserId),
+    })
+    assert.equal(response.statusCode, 404)
+    assert.deepEqual(response.json(), {
+      ok: false,
+      error: 'Пользователь не найден.',
+    })
+  })
+})
+
+test('POST /api/notifications/read изменяет только свои уведомления', async () => {
+  const foreign = await app.inject({
+    method: 'POST',
+    url: '/api/notifications/read',
+    headers: authHeaders(),
+    payload: {
+      max_user_id: studentMaxUserId,
+      notification_id: fixtureIds.bobUnread,
+    },
+  })
+  assert.equal(foreign.statusCode, 200)
+  assert.deepEqual(foreign.json(), { ok: true })
+
+  const bobBefore = await app.inject({
+    method: 'GET',
+    url: '/api/notifications?max_user_id=7102',
+    headers: authHeaders(7102),
+  })
+  assert.equal(bobBefore.json().data.unread_count, 1)
+
+  const own = await app.inject({
+    method: 'POST',
+    url: '/notifications/read',
+    headers: authHeaders(),
+    payload: {
+      max_user_id: studentMaxUserId,
+      notification_id: fixtureIds.aliceUnread,
+    },
+  })
+  assert.equal(own.statusCode, 200)
+  assert.deepEqual(own.json(), { ok: true })
+
+  const aliceAfter = await app.inject({
+    method: 'GET',
+    url: `/api/notifications?max_user_id=${studentMaxUserId}`,
+    headers: authHeaders(),
+  })
+  assert.equal(aliceAfter.json().data.unread_count, 0)
+  assert.equal(
+    typeof aliceAfter.json().data.notifications.find(
+      (notification: { id: number }) => notification.id === fixtureIds.aliceUnread,
+    )?.read_at,
+    'string',
+  )
+
+  const all = await app.inject({
+    method: 'POST',
+    url: '/api/notifications/read',
+    headers: authHeaders(7102),
+    payload: { max_user_id: 7102, read_all: true },
+  })
+  assert.equal(all.statusCode, 200)
+  assert.deepEqual(all.json(), { ok: true })
+  const bobAfter = await app.inject({
+    method: 'GET',
+    url: '/api/notifications?max_user_id=7102',
+    headers: authHeaders(7102),
+  })
+  assert.equal(bobAfter.json().data.unread_count, 0)
+})
+
+test('POST /api/notifications/read сохраняет validation, auth и unknown-user ошибки', async (context) => {
+  await context.test('нет цели изменения', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/notifications/read',
+      headers: authHeaders(),
+      payload: { max_user_id: studentMaxUserId, read_all: false },
+    })
+    assert.equal(response.statusCode, 400)
+    assert.deepEqual(response.json(), {
+      ok: false,
+      error: 'Передайте notification_id или read_all: true.',
+    })
+  })
+
+  await context.test('некорректный notification_id', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/notifications/read',
+      headers: authHeaders(),
+      payload: { max_user_id: studentMaxUserId, notification_id: 0 },
+    })
+    assert.equal(response.statusCode, 400)
+    assert.deepEqual(response.json(), {
+      ok: false,
+      error: 'Некорректные параметры запроса.',
+    })
+  })
+
+  await context.test('нет credential', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/notifications/read',
+      payload: { max_user_id: studentMaxUserId, read_all: true },
+    })
+    assert.equal(response.statusCode, 401)
+  })
+
+  await context.test('credential не совпадает', async () => {
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/notifications/read',
+      headers: authHeaders(7102),
+      payload: { max_user_id: studentMaxUserId, read_all: true },
+    })
+    assert.equal(response.statusCode, 403)
+  })
+
+  await context.test('подписанный неизвестный пользователь', async () => {
+    const unknownMaxUserId = 7999
+    const response = await app.inject({
+      method: 'POST',
+      url: '/api/notifications/read',
+      headers: authHeaders(unknownMaxUserId),
+      payload: { max_user_id: unknownMaxUserId, read_all: true },
+    })
+    assert.equal(response.statusCode, 404)
+    assert.deepEqual(response.json(), {
+      ok: false,
+      error: 'Пользователь не найден.',
+    })
+  })
+})
