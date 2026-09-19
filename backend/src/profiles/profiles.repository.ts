@@ -1,0 +1,62 @@
+import type {
+  ProfileEditReviewAction,
+  ReviewProfileEditCommand,
+} from './profile-edit-review.body.js'
+
+export type PendingProfileEdit = {
+  id: number
+  studentId: number
+  newFullName: string
+  newPhone: string
+  newMetro: string | null
+  createdAt: string
+  currentFullName: string
+  currentPhone: string
+  currentMetro: string | null
+  maxUserId: number
+}
+
+export abstract class ProfilesRepository {
+  abstract listPendingProfileEdits(): Promise<PendingProfileEdit[]>
+
+  abstract reviewProfileEdit(
+    command: ReviewProfileEditCommand,
+    reviewerMaxUserId: number,
+    reviewedAt: string,
+  ): Promise<boolean>
+
+  abstract recordProfileEditReview(
+    actorUserId: number,
+    editId: number,
+    action: ProfileEditReviewAction,
+  ): Promise<void>
+
+  abstract findStudentForEdit(userId: number): Promise<{
+    studentId: number
+    fullName: string
+    status: string
+  } | null>
+
+  abstract submitStudentProfileEdit(
+    studentId: number,
+    edit: { fullName: string; phone: string; metro: string | null },
+  ): Promise<number>
+
+  abstract recordStudentProfileEditSubmission(
+    actorUserId: number,
+    studentId: number,
+    studentFullName: string,
+  ): Promise<number[]>
+
+  abstract updateStudentAbout(
+    userId: number,
+    aboutMe: string | null,
+    updatedAt: string,
+  ): Promise<boolean>
+
+  abstract updateTeacherAbout(
+    userId: number,
+    aboutMe: string | null,
+    updatedAt: string,
+  ): Promise<boolean>
+}

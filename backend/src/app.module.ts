@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { HealthModule } from './health/health.module.js'
 import { NotificationsModule } from './notifications/notifications.module.js'
 import { PublicPortfolioModule } from './public-portfolio/public-portfolio.module.js'
+import { ProfilesModule } from './profiles/profiles.module.js'
 import { RegistrationModule } from './registration/registration.module.js'
 import { SessionModule } from './session/session.module.js'
 import { StudentHomeworksModule } from './student-homeworks/student-homeworks.module.js'
@@ -11,6 +12,7 @@ import { StudentHomeworksModule } from './student-homeworks/student-homeworks.mo
     HealthModule,
     NotificationsModule,
     PublicPortfolioModule,
+    ProfilesModule,
     RegistrationModule,
     SessionModule,
     StudentHomeworksModule,
