@@ -6,6 +6,7 @@ import { ProfilesModule } from './profiles/profiles.module.js'
 import { RegistrationModule } from './registration/registration.module.js'
 import { SessionModule } from './session/session.module.js'
 import { StudentHomeworksModule } from './student-homeworks/student-homeworks.module.js'
+import { TeacherCabinetModule } from './teacher-cabinet/teacher-cabinet.module.js'
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { StudentHomeworksModule } from './student-homeworks/student-homeworks.mo
     RegistrationModule,
     SessionModule,
     StudentHomeworksModule,
+    TeacherCabinetModule,
   ],
 })
 export class AppModule {}
