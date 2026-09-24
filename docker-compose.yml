@@ -1,0 +1,63 @@
+# Новый стек: NestJS API, бот и React-клиент.
+# Запуск одной командой: docker compose up --build  (сайт — http://localhost:${WEB_PORT:-8080}).
+# Переменные — в .env (шаблон .env.example) или в окружении платформы (Timeweb и т.п.):
+# compose подставляет их в x-app-env; без них всё, кроме бота, работает на значениях по умолчанию.
+x-app-env: &app-env
+  MAX_BOT_TOKEN: ${MAX_BOT_TOKEN:-}
+  MAX_BOT_USERNAME: ${MAX_BOT_USERNAME:-}
+  WEB_APP_URL: ${WEB_APP_URL:-}
+  MAX_WEBAPP_AUTH: ${MAX_WEBAPP_AUTH:-strict}
+  STORAGE_DRIVER: ${STORAGE_DRIVER:-}
+  S3_BUCKET: ${S3_BUCKET:-}
+  S3_REGION: ${S3_REGION:-ru-central1}
+  S3_ENDPOINT: ${S3_ENDPOINT:-}
+  S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-}
+  S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-}
+  S3_FORCE_PATH_STYLE: ${S3_FORCE_PATH_STYLE:-false}
+  S3_PREFIX: ${S3_PREFIX:-}
+  MAX_HOMEWORK_UPLOAD_MB: ${MAX_HOMEWORK_UPLOAD_MB:-450}
+  CHAT_ENABLED: ${CHAT_ENABLED:-true}
+  APP_NOTIFICATIONS_RETENTION_DAYS: ${APP_NOTIFICATIONS_RETENTION_DAYS:-90}
+
+services:
+  # web — первым: Timeweb App Platform проксирует домен только на первый сервис compose.
+  web:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    ports:
+      - "${WEB_PORT:-8080}:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: proof-craft-backend
+    environment:
+      <<: *app-env
+      INIT_SCHEMA: "1"
+    volumes:
+      - barber-data:/app/data
+    restart: unless-stopped
+
+  bot:
+    image: proof-craft-backend
+    command: ["node", "dist/bot-main.js"]
+    environment: *app-env
+    volumes:
+      - barber-data:/app/data
+    depends_on:
+      api:
+        condition: service_healthy
+    healthcheck:
+      disable: true
+    # Без MAX_BOT_TOKEN бот завершается с кодом 0 и не перезапускается.
+    restart: on-failure
+
+volumes:
+  # SQLite и, при STORAGE_DRIVER=local, загруженные файлы — общие для api и bot.
+  barber-data:

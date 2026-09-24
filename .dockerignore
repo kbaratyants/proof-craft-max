@@ -1,0 +1,14 @@
+**/node_modules
+**/dist
+data
+.git
+.env
+.env.*
+backend/src/generated
+frontend/visual
+mini-app
+testing
+docs
+backend/test
+*.log
+.DS_Store
