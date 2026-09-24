@@ -1,0 +1,71 @@
+import { defineConfig } from '@playwright/test'
+import type { VisualOptions } from './fixtures'
+
+const apiPort = Number(process.env.VISUAL_API_PORT || 18787)
+const appPort = Number(process.env.VISUAL_APP_PORT || 14173)
+const viteBin = 'node_modules/vite/bin/vite.js'
+
+/**
+ * Визуальные регрессионные тесты клиента. Эталоны лежат в `__screenshots__/<project>/`;
+ * любое изменение интерфейса видно как расхождение снимков.
+ */
+export default defineConfig<VisualOptions>({
+  testDir: '.',
+  testMatch: ['**/*.visual.ts', '**/*.behavior.ts'],
+  outputDir: './test-results',
+  snapshotPathTemplate: '{testDir}/__screenshots__/{projectName}/{arg}{ext}',
+  fullyParallel: true,
+  forbidOnly: Boolean(process.env.CI),
+  retries: 0,
+  reporter: [['list'], ['html', { outputFolder: './playwright-report', open: 'never' }]],
+  expect: {
+    toHaveScreenshot: { maxDiffPixels: 0, threshold: 0, animations: 'disabled', caret: 'hide', scale: 'css' },
+  },
+  use: {
+    baseURL: `http://127.0.0.1:${appPort}`,
+    locale: 'ru-RU',
+    timezoneId: 'Europe/Moscow',
+    deviceScaleFactor: 1,
+    hasTouch: true,
+    isMobile: false,
+    trace: 'retain-on-failure',
+    launchOptions: {
+      // Детерминированная растеризация: без асинхронного декодирования картинок, GPU-растра и LCD-сглаживания.
+      args: [
+        '--force-color-profile=srgb',
+        '--disable-checker-imaging',
+        '--disable-partial-raster',
+        '--disable-skia-runtime-opts',
+        '--disable-gpu-rasterization',
+        '--disable-lcd-text',
+        '--run-all-compositor-stages-before-draw',
+      ],
+    },
+  },
+  projects: [
+    { name: 'light-390', use: { viewport: { width: 390, height: 844 }, theme: 'light' } },
+    { name: 'dark-390', use: { viewport: { width: 390, height: 844 }, theme: 'dark' } },
+    { name: 'light-360', use: { viewport: { width: 360, height: 800 }, theme: 'light' } },
+    { name: 'dark-360', use: { viewport: { width: 360, height: 800 }, theme: 'dark' } },
+  ],
+  webServer: [
+    {
+      command: 'node visual/api-stand/start.mjs',
+      cwd: '..',
+      url: `http://127.0.0.1:${apiPort}/health`,
+      env: { VISUAL_API_PORT: String(apiPort) },
+      reuseExistingServer: false,
+      timeout: 60_000,
+    },
+    {
+      command:
+        `node ${viteBin} build --logLevel warn && ` +
+        `node ${viteBin} preview --host 127.0.0.1 --port ${appPort} --strictPort`,
+      cwd: '..',
+      env: { VITE_API_PROXY_TARGET: `http://127.0.0.1:${apiPort}` },
+      url: `http://127.0.0.1:${appPort}`,
+      reuseExistingServer: false,
+      timeout: 120_000,
+    },
+  ],
+})
