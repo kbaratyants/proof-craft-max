@@ -30,6 +30,9 @@ export class S3ObjectStorage extends ObjectStorage {
     region: process.env.S3_REGION || 'ru-central1',
     ...(process.env.S3_ENDPOINT ? { endpoint: process.env.S3_ENDPOINT } : {}),
     forcePathStyle: ['1', 'true'].includes(String(process.env.S3_FORCE_PATH_STYLE).toLowerCase()),
+    // S3-совместимые хранилища не всегда принимают контрольные суммы CRC32, которые SDK шлёт по умолчанию.
+    requestChecksumCalculation: 'WHEN_REQUIRED',
+    responseChecksumValidation: 'WHEN_REQUIRED',
     credentials: {
       accessKeyId: required('S3_ACCESS_KEY_ID'),
       secretAccessKey: required('S3_SECRET_ACCESS_KEY'),
