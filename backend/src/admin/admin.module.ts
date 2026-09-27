@@ -1,4 +1,10 @@
 import { Module } from '@nestjs/common'
+import { AdminAnalyticsRepository } from './admin-analytics.repository.js'
+import { GetAdminAnalyticsUseCase, RemindTeacherQueueUseCase } from './admin-analytics.use-cases.js'
+import { PrismaAdminAnalyticsRepository } from './prisma-admin-analytics.repository.js'
+import { AdminHomeworkReminderRepository } from './admin-homework-reminder.repository.js'
+import { PrismaAdminHomeworkReminderRepository } from './prisma-admin-homework-reminder.repository.js'
+import { RemindHomeworkReviewUseCase } from './remind-homework-review.use-case.js'
 import { AuthModule } from '../auth/auth.module.js'
 import { NotificationsModule } from '../notifications/notifications.module.js'
 import { PersistenceModule } from '../persistence/persistence.module.js'
@@ -47,6 +53,11 @@ import { PrismaAdminTeacherApplicationRepository } from './prisma-admin-teacher-
   imports: [AuthModule, NotificationsModule, PersistenceModule, StorageModule],
   controllers: [AdminController],
   providers: [
+    GetAdminAnalyticsUseCase,
+    RemindTeacherQueueUseCase,
+    { provide: AdminAnalyticsRepository, useClass: PrismaAdminAnalyticsRepository },
+    RemindHomeworkReviewUseCase,
+    { provide: AdminHomeworkReminderRepository, useClass: PrismaAdminHomeworkReminderRepository },
     AdminAuditQueryGuard,
     AdminFeedbackQueryGuard,
     AdminHomeworksQueryGuard,

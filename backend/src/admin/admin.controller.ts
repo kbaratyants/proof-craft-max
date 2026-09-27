@@ -1,8 +1,11 @@
-import { Controller, Get, HttpCode, Inject, Post, Req, UseGuards } from '@nestjs/common'
+import { Controller, Get, HttpCode, Inject, Param, Post, Req, UseGuards } from '@nestjs/common'
 import { AuthenticationGuard } from '../auth/authentication.guard.js'
 import { CurrentPrincipal } from '../auth/current-principal.decorator.js'
 import type { AuthenticatedPrincipal } from '../auth/auth.types.js'
 import { invalidParameters } from '../common/invalid-parameters.error.js'
+import { parsePositiveId } from '../common/parse-positive-id.js'
+import { RemindHomeworkReviewUseCase } from './remind-homework-review.use-case.js'
+import { GetAdminAnalyticsUseCase, RemindTeacherQueueUseCase } from './admin-analytics.use-cases.js'
 import {
   AdminAuditQueryGuard,
   AdminFeedbackQueryGuard,
@@ -78,6 +81,12 @@ export class AdminController {
     private readonly updateStudent: UpdateAdminStudentUseCase,
     @Inject(DecideAdminTeacherApplicationUseCase)
     private readonly decideTeacherApplication: DecideAdminTeacherApplicationUseCase,
+    @Inject(GetAdminAnalyticsUseCase)
+    private readonly analytics: GetAdminAnalyticsUseCase,
+    @Inject(RemindTeacherQueueUseCase)
+    private readonly teacherReminders: RemindTeacherQueueUseCase,
+    @Inject(RemindHomeworkReviewUseCase)
+    private readonly homeworkReminders: RemindHomeworkReviewUseCase,
   ) {}
 
   @Get('teacher-applications')
@@ -217,6 +226,34 @@ export class AdminController {
       principal,
       request.adminHomeworkStudentId ?? null,
     )
+  }
+
+  @Get('analytics')
+  @UseGuards(AuthenticationGuard)
+  async getAnalytics(@CurrentPrincipal() principal: AuthenticatedPrincipal): Promise<object> {
+    return await this.analytics.execute(principal)
+  }
+
+  /** Напомнить преподавателю обо всей его очереди проверки. */
+  @Post('teachers/:teacher_id/remind')
+  @HttpCode(200)
+  @UseGuards(AuthenticationGuard)
+  async remindTeacherQueue(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('teacher_id') teacherId: string,
+  ): Promise<object> {
+    return await this.teacherReminders.execute(principal, parsePositiveId(teacherId))
+  }
+
+  /** Напомнить преподавателям ученика о работе, которая ждёт проверки. */
+  @Post('homeworks/:homework_id/remind')
+  @HttpCode(200)
+  @UseGuards(AuthenticationGuard)
+  async remindHomeworkReview(
+    @CurrentPrincipal() principal: AuthenticatedPrincipal,
+    @Param('homework_id') homeworkId: string,
+  ): Promise<object> {
+    return await this.homeworkReminders.execute(principal, parsePositiveId(homeworkId))
   }
 
   @Get('audit')
