@@ -2,6 +2,8 @@ import type { ReactNode } from 'react'
 import { logout } from '../../app/bootstrap'
 import { iconButtonLabel } from '../../ui/a11y'
 import { ICO } from '../../ui/icons'
+import { useApp } from '../../app/store'
+import { useDemoConfig } from '../demo/DemoAccess'
 import { pickRegisterRole, type RegisterRole } from './register'
 
 const ROLES: { role: RegisterRole; label: string; icon: ReactNode; description: string }[] = [
@@ -12,6 +14,7 @@ const ROLES: { role: RegisterRole; label: string; icon: ReactNode; description: 
 ]
 
 export function RegisterRoleScreen() {
+  const demo = useDemoConfig()
   return (
     <div
       className="scr fi"
@@ -95,6 +98,11 @@ export function RegisterRoleScreen() {
           </div>
         </button>
       ))}
+      {demo.data?.enabled && (
+        <button type="button" className="btn bs" style={{ marginTop: 14 }} onClick={() => useApp.getState().go('demo-roles')}>
+          Посмотреть демо-академию
+        </button>
+      )}
       <div style={{ marginTop: 16 }}>
         <button
           type="button"

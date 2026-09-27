@@ -19,6 +19,8 @@ import { getMax } from '../platform/max'
 import { ErrorScreen } from '../screens/ErrorScreen'
 import { LoadingScreen } from '../screens/LoadingScreen'
 import { useLightboxKeys } from '../ui/Lightbox'
+import { DemoPanel } from '../features/demo/DemoPanel'
+import { DemoRolesScreen } from '../features/demo/DemoRolesScreen'
 import { Toasts } from '../ui/Toasts'
 import { bootstrap } from './bootstrap'
 import type { ScreenName } from './screens'
@@ -35,6 +37,8 @@ function Screen({ name }: { name: ScreenName }) {
     case 'register-role':
       return <RegisterRoleScreen />
     case 'register-flow':
+    case 'demo-roles':
+      return <DemoRolesScreen />
       return <RegisterFlowScreen />
     case 'student':
       return <StudentScreen />
@@ -108,3 +112,4 @@ export function App() {
     </>
   )
 }
+      <DemoPanel />

@@ -11,3 +11,10 @@
 
 /* src/index.css:89 */
 .scr > div.card.ba-pos-relative,.scr > div > div.card.ba-pos-relative { box-shadow:var(--glow) !important; }
+
+/* Панель демо-режима для жюри */
+.demo-panel { position: fixed; right: 14px; bottom: calc(76px + var(--safe-bottom, 0px)); z-index: 60; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+.demo-panel__fab { min-width: 56px; height: 36px; padding: 0 14px; border-radius: 18px; border: 1.5px solid var(--gold); background: var(--gold); color: #fff; font-family: var(--font-body); font-weight: 800; font-size: 13px; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); cursor: pointer; }
+.demo-panel__sheet { width: min(300px, calc(100vw - 28px)); display: flex; flex-direction: column; gap: 8px; padding: 14px; box-shadow: 0 12px 32px rgba(0, 0, 0, .22); }
+.demo-panel__title { font-family: var(--font-display); font-size: 16px; color: var(--gold); }
+.demo-panel__hint { margin: 0 0 4px; font-family: var(--font-body); font-size: 12px; line-height: 1.45; color: var(--dim); }

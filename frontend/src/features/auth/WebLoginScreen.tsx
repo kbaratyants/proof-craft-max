@@ -1,4 +1,5 @@
 import { useApp } from '../../app/store'
+import { DemoAccess } from '../demo/DemoAccess'
 import { cancelWebsiteLogin, startWebsiteLogin } from './webLogin'
 
 export function WebLoginScreen() {
@@ -30,6 +31,7 @@ export function WebLoginScreen() {
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, lineHeight: 1.55, color: 'var(--dim)', margin: '0 0 20px' }}>
           Войдите через аккаунт, который уже связан с академией.
         </p>
+        <DemoAccess disabled={disabled} />
         {waiting && (
           <div className="card" style={{ marginBottom: 12 }}>
             <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, lineHeight: 1.55, margin: 0 }}>

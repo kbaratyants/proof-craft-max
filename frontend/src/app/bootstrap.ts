@@ -1,6 +1,7 @@
 import { apiGet, apiPost } from '../api/client'
 import type { Session, WebAuthSession } from '../api/types'
 import { detectPlatform } from '../platform/detect'
+import { getStartParam } from '../platform/max'
 import { STORAGE_KEYS, local, session as sessionStore } from '../platform/storage'
 import { useApp } from './store'
 
@@ -8,13 +9,20 @@ import { useApp } from './store'
  * Определение платформы, сессии и стартового экрана.
  * Для локальной разработки используется web-session или `?guest=1`.
  */
-export async function bootstrap() {
+export async function bootstrap({ skipDemoEntry = false }: { skipDemoEntry?: boolean } = {}) {
   const app = useApp.getState()
   app.patch({ error: '' })
   const pageParams = new URLSearchParams(window.location.search)
 
   const platform = await detectPlatform()
   app.patch({ platform, appUserId: platform.appUserId })
+
+  // Вход жюри: ссылка ?demo=1 или кнопка бота «Демо для жюри» (start_param=demo), пока не выбрана демо-роль.
+  const wantsDemo = pageParams.get('demo') === '1' || getStartParam() === 'demo'
+  if (wantsDemo && !skipDemoEntry && local.get(STORAGE_KEYS.demo) !== '1') {
+    app.replace('demo-roles', { stack: [] })
+    return
+  }
 
   // Публичная витрина не требует MAX или учётной записи.
   if (pageParams.get('guest') === '1') {
@@ -91,6 +99,7 @@ export async function bootstrap() {
 export function logout() {
   const { platform } = useApp.getState()
   if (platform?.webSessionToken) {
+  local.remove(STORAGE_KEYS.demo)
     void apiPost(platform, '/api/web-auth/logout', {}).catch(() => {})
     local.remove(STORAGE_KEYS.webSession)
   }

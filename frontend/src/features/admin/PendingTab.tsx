@@ -7,6 +7,9 @@ import { useAdminModeration, type AdminStudent, type AdminTeacher, type ProfileE
 import { TeacherCheckbox } from './TeacherCheckbox'
 
 const line = (marginBottom: number) => ({ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--dim)', marginBottom }) as const
+/** Демо-аккаунты имеют служебные ID вне диапазона MAX — показываем пометку вместо числа. */
+const maxIdLabel = (id: unknown): string => (Number(id) >= 900_000_000_000_000 ? 'Демо-аккаунт' : `MAX ID ${String(id ?? '—')}`)
+
 const nameStyle = { fontFamily: 'var(--font-body)', fontWeight: 800, fontSize: 12, marginBottom: 6 } as const
 const sectionTitle = {
   fontSize: 12,
@@ -39,7 +42,7 @@ function ModerationCard({ s, teachers }: { s: AdminStudent; teachers: AdminTeach
     <div className="card pending-card" style={{ marginBottom: 10 }}>
       <div style={nameStyle}>{s.full_name}</div>
       <div style={line(4)}>{`Тел.: ${s.phone || '—'}`}</div>
-      <div style={line(10)}>{`MAX ID ${text(s.max_user_id)}`}</div>
+      <div style={line(10)}>{maxIdLabel(s.max_user_id)}</div>
       {teachers.length ? (
         <div style={{ marginBottom: 8 }}>
           <div style={{ ...line(6), textTransform: 'uppercase', letterSpacing: '.5px' }}>Назначить преподавателей</div>
@@ -106,7 +109,7 @@ function ProfileEditCard({ e }: { e: ProfileEdit }) {
   return (
     <div className="card pending-card" style={blueCard}>
       <div style={nameStyle}>{e.current_full_name}</div>
-      <div style={line(8)}>{`MAX ID ${String(e.max_user_id)}`}</div>
+      <div style={line(8)}>{maxIdLabel(e.max_user_id)}</div>
       {changes.length ? (
         <div style={{ fontSize: 12, fontFamily: 'var(--font-body)', lineHeight: 1.8, marginBottom: 10 }}>
           {changes.flatMap((c, i) => (i ? [<br key={`br${i}`} />, c] : [c]))}

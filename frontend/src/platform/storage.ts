@@ -3,6 +3,7 @@ export const STORAGE_KEYS = {
   guest: 'ba_guest_mode',
   webSession: 'ba_web_session',
   theme: 'ba_theme',
+  demo: 'ba_demo',
 } as const
 
 const safe = <T>(fn: () => T, fallback: T): T => {

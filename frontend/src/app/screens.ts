@@ -2,6 +2,7 @@ export type ScreenName =
   | 'loading'
   | 'error'
   | 'web-login'
+  | 'demo-roles'
   | 'register-role'
   | 'register-flow'
   | 'guest'
