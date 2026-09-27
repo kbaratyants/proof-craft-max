@@ -20,7 +20,8 @@ export class PrismaPortfolioStudentsRepository implements PortfolioStudentsRepos
 
   async listVisibleStudents(): Promise<PublicPortfolioStudent[]> {
     const rows = await this.prisma.students.findMany({
-      where: { status: PUBLIC_STUDENT_STATUS },
+      // В витрине только ученики хотя бы с одной принятой работой: пустой профиль гостю ничего не показывает.
+      where: { status: PUBLIC_STUDENT_STATUS, homeworks: { some: { status: PUBLIC_HOMEWORK_STATUS } } },
       select: {
         id: true,
         full_name: true,

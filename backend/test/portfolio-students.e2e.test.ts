@@ -11,6 +11,7 @@ import { createTestDatabase } from './support/test-database.js'
 
 let temporaryRoot: string
 let app: NestFastifyApplication
+let databasePath: string
 
 const attachmentSvg =
   '<svg xmlns="http://www.w3.org/2000/svg" width="2" height="2"><rect width="2" height="2" fill="red"/></svg>'
@@ -199,6 +200,7 @@ const expectedStudentPortfolio = {
 before(async () => {
   const fixture = await createTestDatabase('proof-craft-portfolio-students-')
   temporaryRoot = fixture.temporaryRoot
+  databasePath = fixture.databasePath
   seedPortfolio(fixture.databasePath)
   process.env.DATABASE_URL = `file:${fixture.databasePath}`
 
@@ -223,6 +225,18 @@ test('works_count публичной витрины учитывает толь�
   const response = await app.inject({ method: 'GET', url: '/api/guest/portfolio-students' })
   const body = response.json() as typeof expectedResponse
   assert.equal(body.data.students[0]?.works_count, 1)
+})
+
+test('витрина не показывает учеников без принятых работ', async () => {
+  const db = new Database(databasePath)
+  const insertUser = db.prepare(`INSERT INTO users (max_user_id, first_name, role) VALUES (?, ?, 'student')`)
+  const insertStudent = db.prepare(`INSERT INTO students (user_id, full_name, phone, lessons_count, status) VALUES (?, ?, '+70000000000', 10, 'studying')`)
+  const pendingOnly = Number(insertStudent.run(Number(insertUser.run(5301, 'Pending').lastInsertRowid), 'Pending Only').lastInsertRowid)
+  insertStudent.run(Number(insertUser.run(5302, 'Empty').lastInsertRowid), 'No Works')
+  db.prepare(`INSERT INTO homeworks (student_id, lesson_number, content_type, status) VALUES (?, 1, 'text', 'pending')`).run(pendingOnly)
+  db.close()
+  const response = await app.inject({ method: 'GET', url: '/api/guest/portfolio-students' })
+  assert.deepEqual(response.json(), expectedResponse)
 })
 
 test('GET /guest/portfolio-students поддерживает nginx без префикса /api', async () => {
