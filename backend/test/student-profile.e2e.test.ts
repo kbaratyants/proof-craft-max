@@ -399,7 +399,7 @@ test('POST /api/student/profile-edit создаёт заявку, аудит и 
     SELECT action, meta FROM audit_log ORDER BY id DESC LIMIT 1
   `).get()
   const notification = db.prepare(`
-    SELECT n.kind, n.body, n.payload
+    SELECT n.kind, n.body, n.payload, n.created_at
     FROM app_notifications n
     JOIN users u ON u.id = n.user_id
     WHERE u.max_user_id = ? AND n.kind = 'profile_edit_pending'
@@ -431,7 +431,10 @@ test('POST /api/student/profile-edit создаёт заявку, аудит и 
     meta: JSON.stringify({ student_id: studentId }),
   })
   const message = 'Ученик Student Profile отправил заявку на изменение профиля.'
-  assert.deepEqual(notification, {
+  const { created_at: createdAt, ...notificationFields } = notification as { created_at: string }
+  // Регрессия: дата по умолчанию вычисляется SQLite, а не записывается строкой "datetime('now')".
+  assert.match(createdAt, /^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/)
+  assert.deepEqual(notificationFields, {
     kind: 'profile_edit_pending',
     body: message,
     payload: JSON.stringify({ student_id: studentId }),

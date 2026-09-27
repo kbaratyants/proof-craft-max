@@ -17,7 +17,7 @@ model app_notifications {
   body       String
   payload    String?
   read_at    String?
-  created_at String  @default("datetime('now')")
+  created_at String  @default(dbgenerated("datetime('now')"))
   users      users   @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([user_id, read_at], map: "idx_app_notifications_unread")
@@ -29,7 +29,7 @@ model audit_log {
   actor_user_id Int
   action        String
   meta          String?
-  created_at    String  @default("datetime('now')")
+  created_at    String  @default(dbgenerated("datetime('now')"))
   users         users   @relation(fields: [actor_user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@index([created_at], map: "idx_audit_log_created")
@@ -42,7 +42,7 @@ model chat_messages {
   text_content   String?
   content_type   String
   file_id        String?
-  created_at     String   @default("datetime('now')")
+  created_at     String   @default(dbgenerated("datetime('now')"))
   users          users    @relation(fields: [sender_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   students       students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -55,7 +55,7 @@ model feedback_invites {
   student_id      Int
   milestone       Int
   delivery_status String   @default("pending")
-  created_at      String   @default("datetime('now')")
+  created_at      String   @default(dbgenerated("datetime('now')"))
   students        students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([student_id, milestone], map: "sqlite_autoindex_feedback_invites_1")
@@ -66,7 +66,7 @@ model homework_comments {
   homework_id    Int
   author_user_id Int
   text_content   String
-  created_at     String    @default("datetime('now')")
+  created_at     String    @default(dbgenerated("datetime('now')"))
   users          users     @relation(fields: [author_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   homeworks      homeworks @relation(fields: [homework_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -79,7 +79,7 @@ model homework_files {
   file_id      String
   content_type String
   sort_order   Int       @default(0)
-  created_at   String    @default("datetime('now')")
+  created_at   String    @default(dbgenerated("datetime('now')"))
   homeworks    homeworks @relation(fields: [homework_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([homework_id], map: "idx_homework_files_homework")
@@ -92,8 +92,8 @@ model homework_reviews {
   rating      Int?
   comment     String?
   status      String
-  created_at  String    @default("datetime('now')")
-  updated_at  String    @default("datetime('now')")
+  created_at  String    @default(dbgenerated("datetime('now')"))
+  updated_at  String    @default(dbgenerated("datetime('now')"))
   teachers    teachers  @relation(fields: [teacher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   homeworks   homeworks @relation(fields: [homework_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -110,8 +110,8 @@ model homeworks {
   file_id                  String?
   text_content             String?
   status                   String              @default("pending")
-  created_at               String              @default("datetime('now')")
-  updated_at               String              @default("datetime('now')")
+  created_at               String              @default(dbgenerated("datetime('now')"))
+  updated_at               String              @default(dbgenerated("datetime('now')"))
   haircut_name             String?
   revision_student_text    String?
   revision_student_file_id String?
@@ -130,7 +130,7 @@ model private_feedback {
   request_key String
   subject     String
   message     String
-  created_at  String   @default("datetime('now')")
+  created_at  String   @default(dbgenerated("datetime('now')"))
   students    students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([student_id, request_key], map: "sqlite_autoindex_private_feedback_1")
@@ -144,7 +144,7 @@ model student_profile_edits {
   new_metro               String?
   status                  String   @default("pending")
   admin_comment           String?
-  created_at              String   @default("datetime('now')")
+  created_at              String   @default(dbgenerated("datetime('now')"))
   reviewed_at             String?
   reviewed_by_max_user_id Int?
   students                students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
@@ -157,7 +157,7 @@ model student_teachers {
   id         Int      @id @default(autoincrement())
   student_id Int
   teacher_id Int
-  created_at String   @default("datetime('now')")
+  created_at String   @default(dbgenerated("datetime('now')"))
   teachers   teachers @relation(fields: [teacher_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
   students   students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
@@ -173,8 +173,8 @@ model students {
   phone                 String
   lessons_count         Int
   status                String                  @default("moderation")
-  created_at            String                  @default("datetime('now')")
-  updated_at            String                  @default("datetime('now')")
+  created_at            String                  @default(dbgenerated("datetime('now')"))
+  updated_at            String                  @default(dbgenerated("datetime('now')"))
   student_track         String                  @default("student")
   metro                 String?
   avatar_file_id        String?
@@ -197,8 +197,8 @@ model teacher_applications {
   full_name         String
   phone             String
   status            String @default("pending")
-  created_at        String @default("datetime('now')")
-  updated_at        String @default("datetime('now')")
+  created_at        String @default(dbgenerated("datetime('now')"))
+  updated_at        String @default(dbgenerated("datetime('now')"))
   users             users  @relation(fields: [applicant_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([applicant_user_id], map: "idx_teacher_apps_user")
@@ -209,8 +209,8 @@ model teachers {
   id               Int                @id @default(autoincrement())
   user_id          Int                @unique(map: "sqlite_autoindex_teachers_1")
   full_name        String
-  created_at       String             @default("datetime('now')")
-  updated_at       String             @default("datetime('now')")
+  created_at       String             @default(dbgenerated("datetime('now')"))
+  updated_at       String             @default(dbgenerated("datetime('now')"))
   about_me         String?
   homework_reviews homework_reviews[]
   student_teachers student_teachers[]
@@ -223,7 +223,7 @@ model user_roles {
   id         Int    @id @default(autoincrement())
   user_id    Int
   role       String
-  created_at String @default("datetime('now')")
+  created_at String @default(dbgenerated("datetime('now')"))
   users      users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@unique([user_id, role], map: "sqlite_autoindex_user_roles_1")
@@ -238,8 +238,8 @@ model users {
   first_name           String?
   last_name            String?
   role                 String                 @default("guest")
-  created_at           String                 @default("datetime('now')")
-  updated_at           String                 @default("datetime('now')")
+  created_at           String                 @default(dbgenerated("datetime('now')"))
+  updated_at           String                 @default(dbgenerated("datetime('now')"))
   app_notifications    app_notifications[]
   audit_log            audit_log[]
   chat_messages        chat_messages[]
@@ -261,7 +261,7 @@ model web_login_requests {
   user_id     Int?
   expires_at  String
   approved_at String?
-  created_at  String  @default("datetime('now')")
+  created_at  String  @default(dbgenerated("datetime('now')"))
   users       users?  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at], map: "idx_web_login_requests_expires")
@@ -273,8 +273,8 @@ model web_sessions {
   user_id      Int
   token_hash   String @unique(map: "sqlite_autoindex_web_sessions_1")
   expires_at   String
-  last_seen_at String @default("datetime('now')")
-  created_at   String @default("datetime('now')")
+  last_seen_at String @default(dbgenerated("datetime('now')"))
+  created_at   String @default(dbgenerated("datetime('now')"))
   users        users  @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([expires_at], map: "idx_web_sessions_expires")
