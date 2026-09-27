@@ -192,12 +192,13 @@ export async function submitHomeworkRevision(queryClient: QueryClient, homeworkI
   }
 }
 
-export async function saveHomeworkReview(queryClient: QueryClient, homeworkId: number, rating: number, comment: string) {
+/** Возвращает true, если проверка сохранена — тогда форма очищается. */
+export async function saveHomeworkReview(queryClient: QueryClient, homeworkId: number, rating: number, comment: string): Promise<boolean> {
   const text = comment.trim() || null
   const grade = rating || null
   if (!grade && !text) {
     toast('Укажите оценку или напишите комментарий')
-    return
+    return false
   }
   const { platform, appUserId, session } = useApp.getState()
   try {
@@ -208,14 +209,17 @@ export async function saveHomeworkReview(queryClient: QueryClient, homeworkId: n
       comment: text ?? undefined,
     })
     toast(grade ? 'Задание принято' : 'Комментарий сохранён')
-    // Перечитываем список работ ученика у преподавателя; открытая работа не обновляется.
+    // Перечитываем список работ и открытую работу: после проверки форма проверки должна исчезнуть.
     const adminStudentId = useApp.getState().adminStudentId
     if (adminStudentId != null) await queryClient.invalidateQueries({ queryKey: adminKeys.student(adminStudentId) })
-    await refreshTeacherHomework(queryClient, homeworkId)
+    const refreshed = await refreshTeacherHomework(queryClient, homeworkId)
+    if (refreshed) useApp.getState().patch({ selectedHomework: refreshed })
     if (session?.student?.id) await refreshStudentHomework(queryClient, homeworkId)
     await refreshSessionQuiet()
+    return true
   } catch (error) {
     toast(message(error, 'Ошибка'))
+    return false
   }
 }
 

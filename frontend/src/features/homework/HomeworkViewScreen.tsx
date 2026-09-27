@@ -298,7 +298,12 @@ function ReviewPanel({ hw }: { hw: StudentHomework }) {
         id="hw-submit-btn"
         style={{ marginTop: 10, opacity: ready ? 1 : 0.4, cursor: ready ? 'pointer' : 'not-allowed' }}
         disabled={!ready}
-        onClick={() => void saveHomeworkReview(queryClient, hw.id, rating, comment)}
+        onClick={async () => {
+          if (!(await saveHomeworkReview(queryClient, hw.id, rating, comment))) return
+          setComment('')
+          setRating(0)
+          setTouched(false)
+        }}
       >
         {label}
       </button>
@@ -367,8 +372,8 @@ export function HomeworkViewScreen() {
         <RevisionComment hw={hw} />
         {isOwner && hw.status === 'revision' && <CorrectionForm hw={hw} />}
         <CorrectionDone hw={hw} />
-        <CommentsPanel key={hw.id} hw={hw} isOwner={isOwner} canComment={isOwner || staff} />
-        {staff && hw.status === 'pending' && <ReviewPanel key={hw.id} hw={hw} />}
+        <CommentsPanel key={`comments-${hw.id}`} hw={hw} isOwner={isOwner} canComment={isOwner || staff} />
+        {staff && hw.status === 'pending' && <ReviewPanel key={`review-${hw.id}`} hw={hw} />}
       </div>
       <HomeworkEditModal hw={hw} />
       <Lightbox />

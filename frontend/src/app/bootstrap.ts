@@ -70,28 +70,25 @@ export async function bootstrap({ skipDemoEntry = false }: { skipDemoEntry?: boo
       return
     }
 
+    // Корневые экраны открываются с пустой историей: «Назад» не должен вести на загрузку или вход.
     if (!session?.hasUser) {
-      app.patch({ tab: null, registerRole: null, registerTab: 'reg', teacherApplicationSent: false, isGuestMode: false })
-      useApp.getState().go('register-role')
+      app.replace('register-role', { stack: [], tab: null, registerRole: null, registerTab: 'reg', teacherApplicationSent: false, isGuestMode: false })
       return
     }
 
     if (pageParams.get('feedback') === '1' && session.student) {
-      app.patch({ tab: 'home', scr: 'student' })
+      app.replace('student', { stack: [], tab: 'home' })
       useApp.getState().go('feedback')
     } else if (session.isAdmin) {
-      app.patch({ tab: 'pending' })
-      useApp.getState().go('admin')
+      app.replace('admin', { stack: [], tab: 'pending' })
     } else if (session.isTeacher) {
-      app.patch({ tab: 'profile' })
-      useApp.getState().go('teacher')
+      app.replace('teacher', { stack: [], tab: 'profile' })
     } else {
-      app.patch({ tab: 'home' })
-      useApp.getState().go('student')
+      app.replace('student', { stack: [], tab: 'home' })
     }
   } catch (error) {
     app.patch({ error: error instanceof Error && error.message ? error.message : 'Не удалось загрузить данные' })
-    useApp.getState().go('error')
+    app.replace('error', { stack: [] })
   }
 }
 
@@ -99,10 +96,10 @@ export async function bootstrap({ skipDemoEntry = false }: { skipDemoEntry?: boo
 export function logout() {
   const { platform } = useApp.getState()
   if (platform?.webSessionToken) {
-  local.remove(STORAGE_KEYS.demo)
     void apiPost(platform, '/api/web-auth/logout', {}).catch(() => {})
     local.remove(STORAGE_KEYS.webSession)
   }
+  local.remove(STORAGE_KEYS.demo)
   sessionStore.remove(STORAGE_KEYS.guest)
   useApp.getState().patch({
     session: null,
