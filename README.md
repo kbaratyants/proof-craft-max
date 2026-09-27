@@ -109,6 +109,19 @@ cp .env.example .env
 - **Для запуска:** Docker Engine и Docker Compose v2. Образы собираются из `node:22-bookworm-slim` и `nginx`.
 - **Для разработки:** Node.js 22 и npm; зависимости ставятся командами `npm --prefix backend install` и `npm --prefix frontend install`.
 - **Основные библиотеки:** NestJS, Fastify, Prisma, better-sqlite3, sharp, `@aws-sdk/client-s3` (backend); React, Vite, TanStack Query, Zustand (frontend); Playwright (визуальные тесты).
+- **Версии зафиксированы** в `backend/package-lock.json` и `frontend/package-lock.json`; в Docker зависимости ставятся через `npm ci` строго по этим файлам.
+
+### Docker-конфигурация
+
+| Файл | Назначение |
+|---|---|
+| `backend/Dockerfile` | Образ API и бота (один образ, разные команды запуска) |
+| `frontend/Dockerfile` | Сборка React-клиента и nginx со статикой и прокси `/api` |
+| `docker-compose.yml` | Запуск `web`, `api` и `bot` одной командой |
+| `.dockerignore` | Исключает `node_modules`, `dist`, тесты, документацию, данные и `.env` из контекста сборки |
+| `.env.example` | Шаблон переменных без токенов, паролей и ключей |
+
+Сборки многоэтапные: в итоговые образы попадают только собранный код и production-зависимости. Полная сборка без кэша занимает около 1,5 минуты, не считая загрузки базовых образов.
 
 ## Внешние сервисы и интеграции
 
