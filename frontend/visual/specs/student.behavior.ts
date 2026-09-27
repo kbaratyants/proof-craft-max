@@ -89,7 +89,8 @@ test.describe('ученик: поведение', () => {
   test('кнопка чата в карточке преподавателя открывает вкладку чата', async ({ page }) => {
     await page.getByRole('button', { name: 'Открыть карточку' }).click()
     await expect(page.locator('.hdr h2')).toHaveText('Чат')
-    await expect(page.locator('.tb.on')).toHaveText('Чат')
+    // На вкладке может быть бейдж непрочитанных.
+    await expect(page.locator('.tb.on')).toContainText('Чат')
   })
 
   test('тема переключается и запоминается', async ({ page }) => {

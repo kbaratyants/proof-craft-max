@@ -58,7 +58,8 @@ export const test = base.extend<VisualFixtures & VisualOptions>({
           } catch {
             // не JSON (multipart) — сохраняем как есть
           }
-          mutations.push({ method: request.method(), path: url.pathname, body })
+          // Отметка «прочитано» — служебная и шлётся при каждом открытии чата; в проверки мутаций не попадает.
+          if (url.pathname !== '/api/chats/read') mutations.push({ method: request.method(), path: url.pathname, body })
           return route.fulfill({ json: { ok: true, data: {} } })
         }
         return route.continue()

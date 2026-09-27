@@ -1,4 +1,6 @@
 import { logout } from '../../app/bootstrap'
+import { useUnreadChats } from '../chat/api'
+import { ChatsList } from '../chat/ChatsList'
 import { useApp } from '../../app/store'
 import { initialsFromName, text } from '../../domain/format'
 import { cardButtonProps, iconButtonLabel } from '../../ui/a11y'
@@ -115,13 +117,14 @@ function NotificationsTab() {
   )
 }
 
-const TABS = ['pending', 'feedback', 'students', 'teachers', 'notifs'] as const
+const TABS = ['pending', 'feedback', 'students', 'chats', 'teachers', 'notifs'] as const
 
 /** Кабинет администратора. */
 export function AdminScreen() {
   const tab = useApp((s) => (TABS.includes(s.tab as (typeof TABS)[number]) ? s.tab : 'pending')) as (typeof TABS)[number]
   const unread = useApp((s) => Number(s.session?.unread_notifications_count || 0))
   const moderation = useAdminModeration()
+  const unreadChats = useUnreadChats()
   const pendingCount = (moderation.data?.students.length ?? 0) + (moderation.data?.applications.length ?? 0) + (moderation.data?.edits.length ?? 0)
   return (
     <>
@@ -133,6 +136,14 @@ export function AdminScreen() {
       )}
       {tab === 'feedback' && <FeedbackTab />}
       {tab === 'students' && <StudentsTab />}
+      {tab === 'chats' && (
+        <>
+          <Header title="Чаты" right={logoutButton} />
+          <div className="scr" style={{ padding: 12 }}>
+            <ChatsList />
+          </div>
+        </>
+      )}
       {tab === 'teachers' && <TeachersTab />}
       {tab === 'notifs' && <NotificationsTab />}
       <TabBar
@@ -140,8 +151,9 @@ export function AdminScreen() {
         onSelect={(key) => useApp.getState().setTab(key)}
         tabs={[
           { key: 'pending', icon: ICO.inbox, label: 'Заявки', count: pendingCount },
-          { key: 'feedback', icon: ICO.chat, label: 'Отзывы' },
+          { key: 'feedback', icon: ICO.star, label: 'Отзывы' },
           { key: 'students', icon: ICO.users, label: 'Ученики' },
+          { key: 'chats', icon: ICO.chat, label: 'Чаты', count: unreadChats },
           { key: 'teachers', icon: ICO.book, label: 'Преп.' },
           { key: 'notifs', icon: ICO.bell, label: 'Увед.', count: unread },
         ]}

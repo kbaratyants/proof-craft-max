@@ -1,15 +1,14 @@
 import { useQueryClient } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { chatFileUrl, openFile } from '../../api/files'
 import { refreshSessionQuiet } from '../../app/session'
 import { useApp } from '../../app/store'
 import { iconButtonLabel } from '../../ui/a11y'
 import { ICO } from '../../ui/icons'
 import { toast } from '../../ui/toast'
-import { chatQueryKey, sendChatMessage, useChatMessages, type ChatMessage } from './api'
+import { chatQueryKey, markChatRead, sendChatMessage, useChatMessages, type ChatMessage } from './api'
 
 function Message({ m, ownUserId }: { m: ChatMessage; ownUserId: number }) {
-  // session.user_id в ответе API нет, поэтому все сообщения показываются слева — известное ограничение.
   const mine = Number(m.sender_user_id) === ownUserId
   return (
     <div style={{ marginBottom: 8, textAlign: mine ? 'right' : 'left' }}>
@@ -36,8 +35,8 @@ function Message({ m, ownUserId }: { m: ChatMessage; ownUserId: number }) {
   )
 }
 
-/** Лента чата ученика с командой и поле ввода. */
-export function ChatPanel() {
+/** Лента чата ученика с командой и поле ввода; `header` (участники) закреплён над лентой. */
+export function ChatPanel({ header }: { header?: ReactNode } = {}) {
   const session = useApp((s) => s.session)
   const selectedStudent = useApp((s) => s.selectedStudent) as { id?: number } | null
   const queryClient = useQueryClient()
@@ -52,6 +51,14 @@ export function ChatPanel() {
       : null
   const query = useChatMessages(threadId)
   const messages = query.data ?? []
+  const lastId = messages.length ? messages[messages.length - 1]!.id : 0
+  // Открытый чат считается прочитанным до последнего загруженного сообщения.
+  useEffect(() => {
+    if (!threadId || !query.isSuccess) return
+    void markChatRead(threadId)
+      .then(() => queryClient.invalidateQueries({ queryKey: ['chat-threads'] }))
+      .catch(() => {})
+  }, [threadId, lastId, query.isSuccess, queryClient])
 
   const send = async () => {
     const text = draft.trim()
@@ -73,7 +80,8 @@ export function ChatPanel() {
   else body = <p className="empty">Сообщений нет</p>
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
+      {header}
       <div className="scr" style={{ padding: 0 }}>
         <div id="chat-scroll" style={{ padding: 12 }}>
           {body}

@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useUnreadChats } from '../chat/api'
+import { ChatParticipants } from '../chat/ChatParticipants'
 import { logout } from '../../app/bootstrap'
 import { useApp } from '../../app/store'
 import { toggleTheme } from '../../platform/theme'
@@ -58,10 +60,11 @@ function NotificationsTab() {
 }
 
 function ChatTab() {
+  const student = useApp((s) => s.session?.student)
   return (
     <>
       <Header title="Чат" right={logoutButton} />
-      <ChatPanel />
+      <ChatPanel header={<ChatParticipants student={student?.full_name} teachers={(student?.teachers || []).map((t) => t.full_name)} />} />
     </>
   )
 }
@@ -113,6 +116,7 @@ const TABS = ['home', 'works', 'chat', 'notifs', 'profile'] as const
 
 /** Кабинет ученика с нижними вкладками. */
 export function StudentScreen() {
+  const unreadChats = useUnreadChats()
   const tab = useApp((s) => (TABS.includes(s.tab as (typeof TABS)[number]) ? s.tab : 'home')) as (typeof TABS)[number]
   const unread = useApp((s) => Number(s.session?.unread_notifications_count || 0))
   return (
@@ -129,7 +133,7 @@ export function StudentScreen() {
         tabs={[
           { key: 'home', icon: ICO.user, label: 'Главная' },
           { key: 'works', icon: ICO.book, label: 'Работы' },
-          { key: 'chat', icon: ICO.chat, label: 'Чат' },
+          { key: 'chat', icon: ICO.chat, label: 'Чат', count: unreadChats },
           { key: 'notifs', icon: ICO.bell, label: 'Увед.', count: unread },
           { key: 'profile', icon: ICO.gear, label: 'Профиль' },
         ]}

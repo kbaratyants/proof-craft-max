@@ -1,4 +1,6 @@
 import { useState } from 'react'
+import { useUnreadChats } from '../chat/api'
+import { ChatsList } from '../chat/ChatsList'
 import { logout } from '../../app/bootstrap'
 import { useApp } from '../../app/store'
 import { initialsFromName, studentStatusRu, text } from '../../domain/format'
@@ -301,18 +303,27 @@ function NotificationsTab() {
   )
 }
 
-const TABS = ['profile', 'review', 'students', 'notifs'] as const
+const TABS = ['profile', 'review', 'students', 'chats', 'notifs'] as const
 
 /** Кабинет преподавателя. */
 export function TeacherScreen() {
   const tab = useApp((s) => (TABS.includes(s.tab as (typeof TABS)[number]) ? s.tab : 'profile')) as (typeof TABS)[number]
   const unread = useApp((s) => Number(s.session?.unread_notifications_count || 0))
   const dashboard = useTeacherDashboard({ refetchOnMount: false })
+  const unreadChats = useUnreadChats()
   return (
     <>
       {tab === 'profile' && <ProfileTab />}
       {tab === 'review' && <ReviewTab />}
       {tab === 'students' && <StudentsTab />}
+      {tab === 'chats' && (
+        <>
+          <Header title="Чаты" right={logoutButton} />
+          <div className="scr" style={{ padding: 12 }}>
+            <ChatsList />
+          </div>
+        </>
+      )}
       {tab === 'notifs' && <NotificationsTab />}
       <TabBar
         active={tab}
@@ -321,6 +332,7 @@ export function TeacherScreen() {
           { key: 'profile', icon: ICO.user, label: 'Профиль' },
           { key: 'review', icon: ICO.check, label: 'Проверить', count: Number(dashboard.data?.pendingCount || 0) },
           { key: 'students', icon: ICO.users, label: 'Ученики' },
+          { key: 'chats', icon: ICO.chat, label: 'Чаты', count: unreadChats },
           { key: 'notifs', icon: ICO.bell, label: 'Увед.', count: unread },
         ]}
       />
