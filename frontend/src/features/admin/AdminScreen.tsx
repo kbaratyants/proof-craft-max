@@ -151,7 +151,7 @@ export function AdminScreen() {
         onSelect={(key) => useApp.getState().setTab(key)}
         tabs={[
           { key: 'pending', icon: ICO.inbox, label: 'Заявки', count: pendingCount },
-          { key: 'feedback', icon: ICO.star, label: 'Отзывы' },
+          { key: 'feedback', icon: ICO.starOutline, label: 'Отзывы' },
           { key: 'students', icon: ICO.users, label: 'Ученики' },
           { key: 'chats', icon: ICO.chat, label: 'Чаты', count: unreadChats },
           { key: 'teachers', icon: ICO.book, label: 'Преп.' },
