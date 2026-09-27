@@ -9,6 +9,8 @@ export type AuthenticatedPrincipal = {
 }
 
 export type AuthenticationRequest = {
+  method?: string
+  url?: string
   headers: Record<string, string | string[] | undefined>
   query?: unknown
   body?: unknown

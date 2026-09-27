@@ -4,6 +4,7 @@ import { maxBotToken } from '../common/max-config.js'
 import { UserIdentityRepository } from '../persistence/users/user-identity.repository.js'
 import { authHttpError } from './auth.errors.js'
 import type { AuthenticatedPrincipal, AuthenticationRequest } from './auth.types.js'
+import { DownloadTokenService, downloadPath } from './download-token.service.js'
 import { MaxInitDataService } from './max-init-data.service.js'
 
 const singleHeader = (value: string | string[] | undefined): string =>
@@ -16,15 +17,38 @@ export class AuthenticationService {
   constructor(
     @Inject(UserIdentityRepository) private readonly users: UserIdentityRepository,
     @Inject(MaxInitDataService) private readonly maxInitData: MaxInitDataService,
+    @Inject(DownloadTokenService) private readonly downloadTokens: DownloadTokenService,
   ) {}
 
   async authenticate(
     request: AuthenticationRequest,
     claimedMaxUserId: number,
   ): Promise<AuthenticatedPrincipal> {
+    const downloadToken = (request.query as { dl?: unknown } | undefined)?.dl
+    if (typeof downloadToken === 'string' && downloadToken) {
+      return await this.authenticateDownload(request, downloadToken, claimedMaxUserId)
+    }
     const webSession = singleHeader(request.headers['x-web-session']).trim()
     if (webSession) return await this.authenticateWebSession(webSession, claimedMaxUserId)
     return await this.authenticateMax(request, claimedMaxUserId)
+  }
+
+  /** Ссылка из `POST /api/downloads/link`: только GET и только тот файл, для которого она выдана. */
+  private async authenticateDownload(
+    request: AuthenticationRequest,
+    token: string,
+    claimedMaxUserId: number,
+  ): Promise<AuthenticatedPrincipal> {
+    const path = downloadPath(String(request.url ?? ''))
+    if (
+      request.method !== 'GET' ||
+      !this.downloadTokens.isDownloadablePath(path) ||
+      !this.downloadTokens.verify(token, claimedMaxUserId, path)
+    ) {
+      throw authHttpError(HttpStatus.UNAUTHORIZED, 'Ссылка на скачивание недействительна или устарела.')
+    }
+    const user = await this.users.findByMaxUserId(claimedMaxUserId)
+    return { provider: 'max', claimedMaxUserId, user }
   }
 
   private async authenticateWebSession(

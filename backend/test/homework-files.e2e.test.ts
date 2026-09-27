@@ -502,3 +502,78 @@ test('вложение работы сохраняет validation, auth и not-f
     assert.deepEqual(response.json(), { ok: false, error: 'Нет доступа к этому файлу.' })
   })
 })
+
+const requestDownloadLink = async (maxUserId: number, path: string) =>
+  await app.inject({
+    method: 'POST',
+    url: '/api/downloads/link',
+    headers: authHeaders(maxUserId),
+    payload: { max_user_id: maxUserId, path },
+  })
+
+test('ссылка на скачивание открывает файл без заголовков MAX', async () => {
+  const path = `/api/homeworks/${fixtureIds.ownerHomework}/file`
+  const link = await requestDownloadLink(ownerMaxUserId, `${path}?max_user_id=${ownerMaxUserId}`)
+  assert.equal(link.statusCode, 200)
+  const { url } = link.json() as { url: string }
+  assert.match(url, new RegExp(`^${path}\\?max_user_id=${ownerMaxUserId}&dl=`))
+
+  const download = await app.inject({ method: 'GET', url })
+  assert.equal(download.statusCode, 200)
+  assert.equal(download.body, testImageSvg)
+})
+
+test('ссылка на скачивание не расширяет права и не переносится', async (context) => {
+  await context.test('чужой файл по своей ссылке — 403 от контроллера файла', async () => {
+    const link = await requestDownloadLink(outsiderMaxUserId, `/api/homeworks/${fixtureIds.ownerHomework}/file`)
+    const download = await app.inject({ method: 'GET', url: (link.json() as { url: string }).url })
+    assert.equal(download.statusCode, 403)
+  })
+
+  const link = await requestDownloadLink(ownerMaxUserId, `/api/homeworks/${fixtureIds.ownerHomework}/file`)
+  const url = (link.json() as { url: string }).url
+  const token = new URL(url, 'http://local').searchParams.get('dl') ?? ''
+
+  await context.test('токен не подходит к другому файлу', async () => {
+    const other = await app.inject({
+      method: 'GET',
+      url: `/api/homeworks/${fixtureIds.ownerHomework}/revision/file?max_user_id=${ownerMaxUserId}&dl=${token}`,
+    })
+    assert.equal(other.statusCode, 401)
+  })
+
+  await context.test('токен не подходит другому пользователю', async () => {
+    const other = await app.inject({
+      method: 'GET',
+      url: `/api/homeworks/${fixtureIds.outsiderHomework}/file?max_user_id=${outsiderMaxUserId}&dl=${token}`,
+    })
+    assert.equal(other.statusCode, 401)
+  })
+
+  await context.test('токен не открывает запись', async () => {
+    const write = await app.inject({
+      method: 'POST',
+      url: `/api/downloads/link?max_user_id=${ownerMaxUserId}&dl=${token}`,
+      payload: { max_user_id: ownerMaxUserId, path: `/api/homeworks/${fixtureIds.ownerHomework}/file` },
+    })
+    assert.equal(write.statusCode, 401)
+  })
+
+  await context.test('испорченный токен', async () => {
+    const broken = await app.inject({ method: 'GET', url: `${url}x` })
+    assert.equal(broken.statusCode, 401)
+  })
+})
+
+test('ссылку на скачивание выдают только для файлов и только с авторизацией', async () => {
+  const notFile = await requestDownloadLink(ownerMaxUserId, '/api/session')
+  assert.equal(notFile.statusCode, 400)
+  const traversal = await requestDownloadLink(ownerMaxUserId, '/api/homeworks/../session/file')
+  assert.equal(traversal.statusCode, 400)
+  const anonymous = await app.inject({
+    method: 'POST',
+    url: '/api/downloads/link',
+    payload: { max_user_id: ownerMaxUserId, path: `/api/homeworks/${fixtureIds.ownerHomework}/file` },
+  })
+  assert.equal(anonymous.statusCode, 401)
+})
