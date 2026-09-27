@@ -70,6 +70,13 @@
 - У одного ДЗ может быть неограниченная лента комментариев преподавателя и ученика; комментарии не заменяют оценку и доступны только ученику-владельцу, его закреплённым преподавателям и администратору.
 - Пользователь MAX сопоставляется с внутренним пользователем по `users.max_user_id`; идентификатор берётся только из подписанного initData или web-session.
 
+## Демо-режим для жюри
+
+- `DEMO_MODE=true` включает модуль `backend/src/demo/`: при старте API один раз создаётся демо-академия (администратор, два преподавателя, ученики с работами, проверками, чатом и заявками); фото работ генерируются из пула `backend/assets/demo/` и кладутся в хранилище под `demo/`.
+- На экране входа сайта появляется блок «Демо-доступ для жюри»: вход за администратора, преподавателя или ученика выдаёт обычную web-сессию демо-пользователя (`POST /api/demo/login`).
+- Панель «Демо» в приложении (`POST /api/demo/simulate`) создаёт события в реальном времени через обычные use cases: сдача работы случайным учеником, заявки ученика и преподавателя, сообщение в чат, запрос правки профиля.
+- Демо-пользователи имеют `max_user_id ≥ 900000000000000` (вне диапазона MAX); сообщения в MAX им и любые сообщения, вызванные эмулятором, не отправляются (`insideDemoSimulation`). Эмулятор доступен только в демо-сессии.
+
 ## Запуск и развёртывание
 
 ```bash
@@ -93,7 +100,8 @@ npm run typecheck
 - `MAX_BOT_TOKEN`, `WEB_APP_URL`, `MAX_BOT_USERNAME` (ник бота без `@`, нужен для входа с сайта через MAX);
 - `MAX_WEBAPP_AUTH` (`off`, `optional`, `strict`), `MAX_INIT_DATA_MAX_AGE_SEC` (по умолчанию сутки), `MAX_HOMEWORK_UPLOAD_MB`, `CHAT_ENABLED`;
 - `STORAGE_DRIVER` (`s3`/`local`; без значения — `s3`, если задан `S3_BUCKET`), `S3_BUCKET`, `S3_REGION`, `S3_ENDPOINT`, `S3_ACCESS_KEY_ID`, `S3_SECRET_ACCESS_KEY`, `S3_FORCE_PATH_STYLE`, `S3_PREFIX`, `STORAGE_LOCAL_DIR`, `STORAGE_STAGING_DIR`;
-- `MAX_API_BASE_URL`, `MAX_POLL_TIMEOUT_SEC` — для тестов и отладки бота;
+- `DEMO_MODE` (`true` — демо-режим для жюри);
+- `MAX_API_BASE_URL` (на сервере — `https://platform-api.max.ru`: у `platform-api2.max.ru` сертификат Минцифры, которому Node не доверяет), `MAX_POLL_TIMEOUT_SEC`;
 - `APP_NOTIFICATIONS_RETENTION_DAYS` (от 7 до 365, по умолчанию 90);
 - `NEST_API_HOST` (по умолчанию `127.0.0.1`) и `NEST_API_PORT` (по умолчанию `8788`); `WEB_PORT` — порт сайта в Docker.
 - `DATABASE_URL=file:/absolute/path/to/barber.db` обязателен для API и бота; поддерживается только SQLite.
