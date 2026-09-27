@@ -24,14 +24,18 @@ export const forgetAuthImage = (src: string) => cache.delete(src)
 /** Забыть все картинки. */
 export const clearAuthImages = () => cache.clear()
 
-type AuthImgProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & { src: string }
+type AuthImgProps = Omit<ImgHTMLAttributes<HTMLImageElement>, 'src'> & {
+  src: string
+  /** Картинка на время загрузки (например, заглушка работы). */
+  placeholder?: string
+}
 
 /**
  * Картинка из API с заголовками авторизации.
  * Атрибут `data-auth-src` сохранён: по нему визуальные тесты ждут загрузку.
- * При ошибке показывается логотип академии.
+ * Пока файл грузится, показывается `placeholder`; при ошибке — логотип академии.
  */
-export function AuthImg({ src, alt, ...rest }: AuthImgProps) {
+export function AuthImg({ src, alt, placeholder, ...rest }: AuthImgProps) {
   const [url, setUrl] = useState<string | undefined>(undefined)
   const epoch = useApp((s) => s.imageEpoch)
   useEffect(() => {
@@ -48,7 +52,7 @@ export function AuthImg({ src, alt, ...rest }: AuthImgProps) {
     <img
       {...rest}
       data-auth-src={src}
-      src={url}
+      src={url ?? placeholder}
       alt={alt}
       onError={(event) => {
         if (!event.currentTarget.src.endsWith(FALLBACK)) event.currentTarget.src = FALLBACK

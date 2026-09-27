@@ -7,6 +7,7 @@ import { StudentAvatarImg } from '../../ui/StudentAvatar'
 import { WorkCard, WorksSection } from '../students/WorksSection'
 import { openTeacherChat } from './actions'
 import { useTeacherStudentHomeworks, type TeacherStudentProfile } from './api'
+import { placeholderPortrait } from '../../domain/portrait'
 
 function Profile({ st, works }: { st: TeacherStudentProfile; works: React.ReactNode }) {
   const avg = st.average_rating != null ? Number(st.average_rating).toFixed(2) : '—'
@@ -27,9 +28,9 @@ function Profile({ st, works }: { st: TeacherStudentProfile; works: React.ReactN
           <StudentAvatarImg student={st} rounded={false} />
         ) : (
           <img
-            src="/demo-student-barber.png"
+            src={placeholderPortrait(st.id, st.full_name)}
             alt={`Демонстрационный профиль ${st.full_name}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 18%' }}
           />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.05) 24%,rgba(0,0,0,.86) 100%)' }} />

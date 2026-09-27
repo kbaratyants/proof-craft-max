@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { workPlaceholder } from '../../domain/portrait'
 import { useApp } from '../../app/store'
 import { homeworkStatusRu } from '../../domain/format'
 import { homeworkTitle } from '../../domain/homework'
@@ -16,7 +17,7 @@ export function WorkCard({ hw }: { hw: StudentHomework }) {
   const open = () => useApp.getState().go('hw-view', { homework: hw })
   return (
     <div className="card ba-work" style={{ marginBottom: 8, cursor: 'pointer' }} {...cardButtonProps(open)}>
-      {thumbUrl ? <AuthImg src={thumbUrl} alt="" /> : <span className="ba-work-placeholder">{ICO.camera}</span>}
+      {thumbUrl ? <AuthImg src={thumbUrl} placeholder={workPlaceholder(hw.id)} alt="" /> : <span className="ba-work-placeholder">{ICO.camera}</span>}
       <div>
         <div style={{ fontFamily: 'var(--font-body)', fontWeight: 800, fontSize: 12 }}>{homeworkTitle(hw)}</div>
         <div style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--dim)', marginTop: 4 }}>{homeworkStatusRu(hw.status)}</div>

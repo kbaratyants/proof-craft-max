@@ -7,12 +7,11 @@ import { AuthImg } from '../../ui/AuthImg'
 import { ICO } from '../../ui/icons'
 import { useGuestPortfolio, type GuestPortfolioStudent } from './api'
 import { exitGuest } from './exitGuest'
-
-const DEMO_IMAGES = ['/demo-homework-fade.png', '/demo-homework-crop.png', '/demo-homework-beard.png']
+import { placeholderPortrait } from '../../domain/portrait'
 
 const trackOf = (s: GuestPortfolioStudent) => s.student_track || 'student'
 
-function StudentCard({ student, index }: { student: GuestPortfolioStudent; index: number }) {
+function StudentCard({ student }: { student: GuestPortfolioStudent }) {
   const avg = student.average_rating != null ? Number(student.average_rating).toFixed(1) : '—'
   const open = () => {
     useApp.getState().patch({ guestStudentId: student.id })
@@ -25,13 +24,13 @@ function StudentCard({ student, index }: { student: GuestPortfolioStudent; index
           <AuthImg
             src={guestStudentAvatarUrl(student.id)}
             alt={`Фото ${String(student.full_name || '').trim() || 'ученика'}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%' }}
           />
         ) : (
           <img
-            src={DEMO_IMAGES[index % DEMO_IMAGES.length]}
-            alt={`Работа ученика ${student.full_name}`}
-            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            src={placeholderPortrait(student.id, student.full_name)}
+            alt={`Портфолио ${student.full_name}`}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%' }}
           />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,transparent 48%,rgba(0,0,0,.62) 100%)' }} />
@@ -83,8 +82,8 @@ export function GuestPortfolioScreen() {
   } else {
     inner = (
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,minmax(0,1fr))', gap: 10 }}>
-        {visible.map((s, index) => (
-          <StudentCard key={s.id} student={s} index={index} />
+        {visible.map((s) => (
+          <StudentCard key={s.id} student={s} />
         ))}
       </div>
     )

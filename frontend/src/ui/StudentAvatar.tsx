@@ -9,7 +9,7 @@ export function StudentAvatarImg({ student, rounded = true }: { student: { id: n
     <AuthImg
       src={studentAvatarUrl(student.id)}
       alt={`Фото ${name}`}
-      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', ...(rounded ? { borderRadius: '50%' } : {}) }}
+      style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', ...(rounded ? { borderRadius: '50%' } : { objectPosition: 'center 22%' }) }}
     />
   )
 }

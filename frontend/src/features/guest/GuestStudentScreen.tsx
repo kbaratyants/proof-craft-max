@@ -1,16 +1,15 @@
-import type { ReactNode } from 'react'
-import { guestStudentAvatarUrl } from '../../api/files'
+import { useState, type ReactNode } from 'react'
+import { guestHomeworkAttachmentFileUrl, guestHomeworkFileUrl, guestStudentAvatarUrl } from '../../api/files'
 import { useApp } from '../../app/store'
 import { studentTrackRu, text } from '../../domain/format'
-import { contentTypeRu, homeworkTitle } from '../../domain/homework'
+import { contentTypeRu, homeworkPhotoItems, homeworkTitle } from '../../domain/homework'
 import { cardButtonProps, iconButtonLabel } from '../../ui/a11y'
 import { AuthImg } from '../../ui/AuthImg'
 import { Badge } from '../../ui/Badge'
 import { Header } from '../../ui/Header'
 import { ICO } from '../../ui/icons'
 import { useGuestStudentPortfolio, type GuestHomework, type GuestStudent } from './api'
-
-const DEMO_IMAGES = ['/demo-homework-fade.png', '/demo-homework-crop.png', '/demo-homework-beard.png']
+import { placeholderPortrait, workPlaceholder } from '../../domain/portrait'
 
 const back = () => useApp.getState().back()
 
@@ -43,14 +42,27 @@ function WorkBadge({ hw }: { hw: GuestHomework }) {
   )
 }
 
+/** Фото работы поверх заглушки: заглушка видна, пока настоящее фото не загрузилось. */
+function PreviewImage({ src, placeholder, alt }: { src: string; placeholder: string; alt: string }) {
+  const [loaded, setLoaded] = useState(src === placeholder)
+  const box = { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' } as const
+  return (
+    <div style={{ position: 'relative', height: 112, background: 'var(--gold-dim)' }}>
+      {!loaded && <img src={placeholder} alt="" aria-hidden="true" style={box} />}
+      <img src={src} alt={alt} onLoad={() => setLoaded(true)} style={{ ...box, opacity: loaded ? 1 : 0 }} />
+    </div>
+  )
+}
+
 function WorkCard({ hw }: { hw: GuestHomework }) {
   const title = homeworkTitle(hw)
-  // Известное ограничение: вместо фото работы — статичная демо-картинка.
-  const previewImage = DEMO_IMAGES[Number(hw.id) % 3]
+  // Превью — первое фото работы; для работ без фото (текст, видео) остаётся демо-картинка.
+  const placeholder = workPlaceholder(hw.id)
+  const previewImage = homeworkPhotoItems(hw, guestHomeworkFileUrl, guestHomeworkAttachmentFileUrl)[0]?.preview ?? placeholder
   const open = () => useApp.getState().go('guest-hw-view', { homework: hw })
   return (
     <article className="card" style={{ cursor: 'pointer', padding: 0, overflow: 'hidden', borderRadius: 18 }} {...cardButtonProps(open)}>
-      <img src={previewImage} alt={title} style={{ width: '100%', height: 112, objectFit: 'cover', display: 'block' }} />
+      <PreviewImage src={previewImage} placeholder={placeholder} alt={title} />
       <div style={{ padding: 10 }}>
         <div style={{ fontSize: 12, fontWeight: 700, fontFamily: 'var(--font-body)', marginBottom: 4 }}>{title}</div>
         <div style={{ fontSize: 12, color: 'var(--dim)', fontFamily: 'var(--font-body)' }}>{contentTypeRu(hw.content_type)}</div>
@@ -72,13 +84,13 @@ function Profile({ student, works }: { student: GuestStudent; works: ReactNode }
           <AuthImg
             src={guestStudentAvatarUrl(student.id)}
             alt={`Фото ${String(student.full_name || '').trim() || 'ученика'}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 22%' }}
           />
         ) : (
           <img
-            src="/demo-student-barber.png"
+            src={placeholderPortrait(student.id, student.full_name)}
             alt={`Портфолио ${student.full_name}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 18%' }}
           />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.04) 25%,rgba(0,0,0,.88) 100%)' }} />

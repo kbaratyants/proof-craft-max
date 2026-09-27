@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { workPlaceholder } from '../../domain/portrait'
 import { homeworkAttachmentFileUrl, homeworkFileUrl } from '../../api/files'
 import { useApp } from '../../app/store'
 import { AuthImg } from '../../ui/AuthImg'
@@ -64,13 +65,13 @@ function EditSheet({ hw }: { hw: StudentHomework }) {
     ...(hasPrimary && !m.removedPrimary
       ? [
           <Tile key="primary" onRemove={removeEditPrimary}>
-            <AuthImg src={homeworkFileUrl(hw.id, true)} alt="" style={tileImg} />
+            <AuthImg src={homeworkFileUrl(hw.id, true)} placeholder={workPlaceholder(hw.id)} alt="" style={tileImg} />
           </Tile>,
         ]
       : []),
     ...attachments.map((a) => (
       <Tile key={`a${a.id}`} onRemove={() => removeEditAttachment(a.id)}>
-        <AuthImg src={homeworkAttachmentFileUrl(hw.id, a.id, true)} alt="" style={tileImg} />
+        <AuthImg src={homeworkAttachmentFileUrl(hw.id, a.id, true)} placeholder={workPlaceholder(a.id)} alt="" style={tileImg} />
       </Tile>
     )),
     ...m.newPhotos.map((p, i) => (

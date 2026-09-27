@@ -1,4 +1,5 @@
 import { useApp } from '../app/store'
+import { workPlaceholder } from '../domain/portrait'
 import type { PhotoItem } from '../domain/homework'
 import { AuthImg } from './AuthImg'
 
@@ -25,6 +26,7 @@ export function PhotoStrip({ items }: { items: PhotoItem[] }) {
           <AuthImg
             key={item.preview}
             src={item.preview}
+            placeholder={workPlaceholder(i)}
             alt={`Фото ${i + 1}`}
             onClick={() => open(i)}
             style={{

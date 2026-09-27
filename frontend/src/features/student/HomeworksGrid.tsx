@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { workPlaceholder } from '../../domain/portrait'
 import { homeworkAttachmentFileUrl, homeworkFileUrl } from '../../api/files'
 import { useApp } from '../../app/store'
 import { homeworkTitle } from '../../domain/homework'
@@ -40,7 +41,7 @@ function HomeworkCard({ hw }: { hw: StudentHomework }) {
   if (thumbUrl) {
     thumb = (
       <div style={{ position: 'relative' }}>
-        <AuthImg src={thumbUrl} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} />
+        <AuthImg src={thumbUrl} placeholder={workPlaceholder(hw.id)} alt="" style={{ width: '100%', aspectRatio: '4/3', objectFit: 'cover' }} />
         {count > 1 && (
           <span
             style={{

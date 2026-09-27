@@ -8,6 +8,7 @@ import { StudentAvatarImg } from '../../ui/StudentAvatar'
 import { WorkCard } from '../students/WorksSection'
 import { openAdminChat } from './actions'
 import { useAdminStudentProfile, type AdminStudentProfile } from './api'
+import { placeholderPortrait } from '../../domain/portrait'
 
 /**
  * Секция работ у администратора: `section.card.ba-works` с заголовком `h4` без подзаголовка.
@@ -31,9 +32,9 @@ function Profile({ st, works }: { st: AdminStudentProfile; works: ReactNode }) {
           <StudentAvatarImg student={st} rounded={false} />
         ) : (
           <img
-            src="/demo-student-barber.png"
+            src={placeholderPortrait(st.id, st.full_name)}
             alt={`Демонстрационный профиль ${st.full_name}`}
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center 18%' }}
           />
         )}
         <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg,rgba(0,0,0,.04) 25%,rgba(0,0,0,.86) 100%)' }} />
