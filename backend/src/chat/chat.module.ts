@@ -39,3 +39,4 @@ import { SendChatMessageUseCase } from './send-chat-message.use-case.js'
   ],
 })
 export class ChatModule {}
+  exports: [SendChatMessageUseCase],

@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common'
 import { maxBotToken } from '../common/max-config.js'
+import { insideDemoSimulation, isDemoMaxUserId } from '../demo/demo.constants.js'
 import { MaxBotApiClient } from '../messenger/max/max-bot-api.client.js'
 import { UserNotificationGateway } from './user-notification.gateway.js'
 
@@ -11,6 +12,8 @@ export class MaxUserNotificationGateway implements UserNotificationGateway {
   async send(maxUserId: number, message: string): Promise<void> {
     const token = maxBotToken()
     if (!token || !maxUserId) return
+    // Демо-пользователям и событиям эмулятора сообщения в MAX не отправляются.
+    if (isDemoMaxUserId(maxUserId) || insideDemoSimulation()) return
     try {
       await new MaxBotApiClient(token).sendMessage({ user_id: maxUserId }, { text: message })
     } catch (error) {

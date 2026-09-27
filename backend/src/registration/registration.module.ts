@@ -27,5 +27,6 @@ import { SubmitStudentFeedbackUseCase } from './submit-student-feedback.use-case
       useClass: PrismaRegistrationRepository,
     },
   ],
+  exports: [RegisterStudentUseCase, SubmitTeacherApplicationUseCase],
 })
 export class RegistrationModule {}

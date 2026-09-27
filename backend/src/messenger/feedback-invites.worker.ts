@@ -1,4 +1,5 @@
 import { Inject, Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common'
+import { isDemoMaxUserId } from '../demo/demo.constants.js'
 import { PrismaService } from '../persistence/prisma/prisma.service.js'
 import type { ChannelPort } from './channel.types.js'
 
@@ -55,7 +56,7 @@ export class FeedbackInvitesWorker implements OnApplicationShutdown {
       })
       for (const invite of invites) {
         const maxUserId = Number(invite.students.users.max_user_id)
-        if (!maxUserId) continue
+        if (!maxUserId || isDemoMaxUserId(maxUserId)) continue
         const claimed = await this.prisma.feedback_invites.updateMany({
           where: { id: invite.id, delivery_status: 'pending' },
           data: { delivery_status: 'sending' },

@@ -33,5 +33,6 @@ import { UpdateTeacherAboutUseCase } from './update-teacher-about.use-case.js'
       useClass: PrismaProfilesRepository,
     },
   ],
+  exports: [SubmitStudentProfileEditUseCase],
 })
 export class ProfilesModule {}

@@ -21,6 +21,7 @@ COPY --from=build /app/package.json ./package.json
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
 COPY backend/prisma/schema.sql ./prisma/schema.sql
+COPY backend/assets ./assets
 COPY backend/docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN mkdir -p data/uploads && chown -R node:node data && chmod +x /usr/local/bin/entrypoint.sh
 USER node
