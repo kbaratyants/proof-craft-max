@@ -1,4 +1,7 @@
 import { useEffect } from 'react'
+import { AdminAnalyticsScreen } from '../features/admin/AdminAnalyticsScreen'
+import { AdminPendingWorksScreen } from '../features/admin/AdminPendingWorksScreen'
+import { AdminUnassignedScreen } from '../features/admin/AdminUnassignedScreen'
 import { RegisterFlowScreen } from '../features/auth/RegisterFlowScreen'
 import { RegisterRoleScreen } from '../features/auth/RegisterRoleScreen'
 import { WebLoginScreen } from '../features/auth/WebLoginScreen'
@@ -16,11 +19,11 @@ import { TeacherStudentScreen } from '../features/teacher/TeacherStudentScreen'
 import { FeedbackScreen } from '../features/student/FeedbackScreen'
 import { StudentScreen } from '../features/student/StudentScreen'
 import { getMax } from '../platform/max'
+import { DemoPanel } from '../features/demo/DemoPanel'
+import { DemoRolesScreen } from '../features/demo/DemoRolesScreen'
 import { ErrorScreen } from '../screens/ErrorScreen'
 import { LoadingScreen } from '../screens/LoadingScreen'
 import { useLightboxKeys } from '../ui/Lightbox'
-import { DemoPanel } from '../features/demo/DemoPanel'
-import { DemoRolesScreen } from '../features/demo/DemoRolesScreen'
 import { Toasts } from '../ui/Toasts'
 import { bootstrap } from './bootstrap'
 import type { ScreenName } from './screens'
@@ -34,11 +37,11 @@ function Screen({ name }: { name: ScreenName }) {
       return <ErrorScreen />
     case 'web-login':
       return <WebLoginScreen />
+    case 'demo-roles':
+      return <DemoRolesScreen />
     case 'register-role':
       return <RegisterRoleScreen />
     case 'register-flow':
-    case 'demo-roles':
-      return <DemoRolesScreen />
       return <RegisterFlowScreen />
     case 'student':
       return <StudentScreen />
@@ -56,6 +59,12 @@ function Screen({ name }: { name: ScreenName }) {
       return <AdminScreen />
     case 'admin-student':
       return <AdminStudentScreen />
+    case 'admin-pending-works':
+      return <AdminPendingWorksScreen />
+    case 'admin-unassigned':
+      return <AdminUnassignedScreen />
+    case 'admin-analytics':
+      return <AdminAnalyticsScreen />
     case 'admin-teacher':
       return <AdminTeacherScreen />
     case 'teacher-chat':
@@ -108,8 +117,8 @@ export function App() {
   return (
     <>
       <Screen name={scr} />
+      <DemoPanel />
       <Toasts />
     </>
   )
 }
-      <DemoPanel />

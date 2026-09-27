@@ -1,4 +1,5 @@
 import { useQueryClient } from '@tanstack/react-query'
+import { AdminOverview } from './AdminOverview'
 import { useState } from 'react'
 import { text } from '../../domain/format'
 import { ICO } from '../../ui/icons'
@@ -6,10 +7,10 @@ import { reviewProfileEdit, reviewTeacherApplication, setStudentStatus } from '.
 import { useAdminModeration, type AdminStudent, type AdminTeacher, type ProfileEdit, type TeacherApplication } from './api'
 import { TeacherCheckbox } from './TeacherCheckbox'
 
-const line = (marginBottom: number) => ({ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--dim)', marginBottom }) as const
 /** Демо-аккаунты имеют служебные ID вне диапазона MAX — показываем пометку вместо числа. */
 const maxIdLabel = (id: unknown): string => (Number(id) >= 900_000_000_000_000 ? 'Демо-аккаунт' : `MAX ID ${String(id ?? '—')}`)
 
+const line = (marginBottom: number) => ({ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--dim)', marginBottom }) as const
 const nameStyle = { fontFamily: 'var(--font-body)', fontWeight: 800, fontSize: 12, marginBottom: 6 } as const
 const sectionTitle = {
   fontSize: 12,
@@ -152,6 +153,7 @@ export function PendingTab() {
     )
   return (
     <div className="scr" style={{ padding: 12 }}>
+      <AdminOverview />
       {head}
       {query.isSuccess && !allEmpty && (
         <>

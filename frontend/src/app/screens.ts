@@ -18,5 +18,8 @@ export type ScreenName =
   | 'teacher-chat'
   | 'admin'
   | 'admin-student'
+  | 'admin-pending-works'
+  | 'admin-unassigned'
+  | 'admin-analytics'
   | 'admin-teacher'
   | 'admin-chat'
