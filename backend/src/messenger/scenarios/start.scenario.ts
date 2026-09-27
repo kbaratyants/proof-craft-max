@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { Inject, Injectable } from '@nestjs/common'
 import { sqliteTimestamp } from '../../common/sqlite-timestamp.js'
+import { demoEnabled } from '../../demo/demo.constants.js'
 import { WebAuthRepository } from '../../web-auth/web-auth.repository.js'
 import type { ScenarioContext } from '../scenario.context.js'
 
@@ -22,6 +23,8 @@ export class StartScenario {
       )
       return
     }
-    await context.reply('Привет! Чтобы войти в приложение, нажми на кнопку «Дневник» в левом нижнем углу.')
+    const text = 'Привет! Чтобы войти в приложение, нажми на кнопку «Дневник» в левом нижнем углу.'
+    // На стенде для хакатона — быстрый вход жюри в демо-академию (мини-приложение с start_param=demo).
+    await context.reply(demoEnabled() ? { text, buttons: [[{ text: 'Демо для жюри', openApp: 'demo' }]] } : text)
   }
 }

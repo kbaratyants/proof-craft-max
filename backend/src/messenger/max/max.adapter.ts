@@ -5,6 +5,7 @@ import type { Button, ChannelPort, ChannelUser, IncomingEvent, OutgoingMessage }
 import {
   MaxBotApiClient,
   type MaxAttachment,
+  type MaxButton,
   type MaxNewMessage,
   type MaxRecipient,
   type MaxUpdate,
@@ -19,23 +20,23 @@ const channelUser = (user: MaxUser): ChannelUser => ({
   lastName: user.last_name ?? null,
 })
 
-const keyboard = (buttons: Button[][] | undefined): MaxAttachment[] =>
-  buttons?.length
-    ? [
-        {
-          type: 'inline_keyboard',
-          payload: {
-            buttons: buttons.map((row) =>
-              row.map((b) =>
-                'url' in b
-                  ? { type: 'link' as const, text: b.text, url: b.url }
-                  : { type: 'callback' as const, text: b.text, payload: b.data },
-              ),
-            ),
-          },
-        },
-      ]
-    : []
+/** Кнопка мини-приложения нужен ник бота; без него — ссылка на сайт с тем же параметром. */
+const toMaxButton = (b: Button): MaxButton | null => {
+  if ('url' in b) return { type: 'link', text: b.text, url: b.url }
+  if ('data' in b) return { type: 'callback', text: b.text, payload: b.data }
+  const bot = String(process.env.MAX_BOT_USERNAME || '').replace(/^@/, '').trim()
+  if (bot) return { type: 'open_app', text: b.text, web_app: bot, payload: b.openApp }
+  const site = process.env.WEB_APP_URL?.trim()
+  if (!site) return null
+  const url = new URL(site)
+  url.searchParams.set(b.openApp, '1')
+  return { type: 'link', text: b.text, url: url.toString() }
+}
+
+const keyboard = (buttons: Button[][] | undefined): MaxAttachment[] => {
+  const rows = (buttons ?? []).map((row) => row.map(toMaxButton).filter((b): b is MaxButton => b != null)).filter((row) => row.length)
+  return rows.length ? [{ type: 'inline_keyboard', payload: { buttons: rows } }] : []
+}
 
 const COMMAND = /^\/([a-z_]+)(?:@\S+)?(?:\s+([\s\S]*))?$/i
 

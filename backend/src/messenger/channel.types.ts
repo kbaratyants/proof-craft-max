@@ -19,7 +19,8 @@ export type IncomingEvent =
   | { kind: 'message'; user: ChannelUser; chatId: number; text: string | null }
   | { kind: 'button'; user: ChannelUser; chatId: number; data: string; callbackId: string }
 
-export type Button = { text: string; data: string } | { text: string; url: string }
+/** `openApp` — кнопка запуска мини-приложения бота с параметром запуска (start_param). */
+export type Button = { text: string; data: string } | { text: string; url: string } | { text: string; openApp: string }
 
 export type OutgoingMedia = {
   kind: 'photo' | 'video'

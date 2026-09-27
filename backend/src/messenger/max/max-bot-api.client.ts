@@ -28,6 +28,7 @@ export type MaxUpdate =
 export type MaxButton =
   | { type: 'callback'; text: string; payload: string }
   | { type: 'link'; text: string; url: string }
+  | { type: 'open_app'; text: string; web_app: string; payload?: string }
 
 export type MaxAttachment =
   | { type: 'inline_keyboard'; payload: { buttons: MaxButton[][] } }

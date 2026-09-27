@@ -3,7 +3,7 @@ import type { AddressInfo } from 'node:net'
 
 export type RecordedCall = { method: string; query: Record<string, string>; body: Record<string, unknown> }
 export type MaxPerson = { id: number; username?: string; first_name: string; last_name?: string }
-type Button = { type: string; text: string; payload?: string; url?: string }
+type Button = { type: string; text: string; payload?: string; url?: string; web_app?: string }
 
 /** Диалог бота с пользователем в MAX имеет свой chat_id, отличный от user_id. */
 export const chatOf = (userId: number): number => userId + 500_000

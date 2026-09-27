@@ -98,6 +98,27 @@ test('/start приветствует и создаёт guest-пользоват
   assert.deepEqual(user, { role: 'guest', roles: 'guest' })
 })
 
+test('с DEMO_MODE приветствие содержит кнопку «Демо для жюри»', async () => {
+  const saved = { demo: process.env.DEMO_MODE, bot: process.env.MAX_BOT_USERNAME, site: process.env.WEB_APP_URL }
+  try {
+    process.env.DEMO_MODE = 'true'
+    process.env.MAX_BOT_USERNAME = '@academy_bot'
+    let since = mark()
+    await max.started(people.stranger, null)
+    assert.deepEqual(buttonsOf(max.sent(since)[0]), [{ type: 'open_app', text: 'Демо для жюри', web_app: 'academy_bot', payload: 'demo' }])
+    delete process.env.MAX_BOT_USERNAME
+    process.env.WEB_APP_URL = 'https://academy.example/app'
+    since = mark()
+    await max.started(people.stranger, null)
+    assert.deepEqual(buttonsOf(max.sent(since)[0]), [{ type: 'link', text: 'Демо для жюри', url: 'https://academy.example/app?demo=1' }])
+  } finally {
+    for (const [key, value] of [['DEMO_MODE', saved.demo], ['MAX_BOT_USERNAME', saved.bot], ['WEB_APP_URL', saved.site]] as const) {
+      if (value === undefined) delete process.env[key]
+      else process.env[key] = value
+    }
+  }
+})
+
 test('запуск по ссылке ?start=webauth_<token> подтверждает вход на сайт один раз', async () => {
   const token = crypto.randomBytes(32).toString('base64url')
   const hash = crypto.createHash('sha256').update(token).digest('hex')
