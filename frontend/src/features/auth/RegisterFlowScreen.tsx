@@ -1,4 +1,5 @@
 import { useState, type ReactNode } from 'react'
+import { FillFromMax } from './FillFromMax'
 import { logout, retry } from '../../app/bootstrap'
 import { useApp } from '../../app/store'
 import { iconButtonLabel } from '../../ui/a11y'
@@ -46,6 +47,7 @@ function StudentForm() {
   const set = (key: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [key]: value }))
   return (
     <>
+      <FillFromMax onFill={(values) => setForm((f) => ({ ...f, ...values }))} />
       <Field id="r-fn" placeholder="Имя *" value={form.firstName} onChange={set('firstName')} />
       <Field id="r-ln" placeholder="Фамилия *" value={form.lastName} onChange={set('lastName')} />
       <Field id="r-phone" placeholder="Телефон *" value={form.phone} onChange={set('phone')} />
@@ -63,6 +65,7 @@ function TeacherForm() {
   const set = (key: keyof typeof form) => (value: string) => setForm((f) => ({ ...f, [key]: value }))
   return (
     <>
+      <FillFromMax onFill={(values) => setForm((f) => ({ ...f, ...values }))} />
       <Field id="t-fn" placeholder="Имя *" value={form.firstName} onChange={set('firstName')} />
       <Field id="t-ln" placeholder="Фамилия *" value={form.lastName} onChange={set('lastName')} />
       <Field id="t-phone" placeholder="Телефон *" value={form.phone} onChange={set('phone')} last />
