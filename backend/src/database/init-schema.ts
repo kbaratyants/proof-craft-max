@@ -7,8 +7,25 @@ import Database from 'better-sqlite3'
 const schemaPath = fileURLToPath(new URL('../../prisma/schema.sql', import.meta.url))
 
 /**
- * Создаёт схему в пустой SQLite. Базу, где таблицы уже есть, не меняет:
- * миграции существующих баз пока не поддерживаются (см. docs/DECISIONS.md).
+ * Дополнения схемы для уже существующих баз: только новые таблицы через IF NOT EXISTS,
+ * существующие данные и столбцы не трогаются.
+ */
+const ADDITIVE_SCHEMA = `
+CREATE TABLE IF NOT EXISTS chat_reads (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  user_id INTEGER NOT NULL,
+  student_id INTEGER NOT NULL,
+  last_read_message_id INTEGER NOT NULL DEFAULT 0,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now')),
+  UNIQUE(user_id, student_id),
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
+  FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
+);
+`
+
+/**
+ * Создаёт схему в пустой SQLite. В существующей базе только добавляет новые таблицы (ADDITIVE_SCHEMA);
+ * изменения существующих таблиц не поддерживаются (см. docs/DECISIONS.md).
  */
 export const initSchema = (databasePath: string): 'created' | 'exists' => {
   mkdirSync(dirname(databasePath), { recursive: true })
@@ -16,7 +33,10 @@ export const initSchema = (databasePath: string): 'created' | 'exists' => {
   try {
     db.pragma('journal_mode = WAL')
     const hasTables = db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'users'`).get()
-    if (hasTables) return 'exists'
+    if (hasTables) {
+      db.exec(ADDITIVE_SCHEMA)
+      return 'exists'
+    }
     db.exec(`BEGIN; ${readFileSync(schemaPath, 'utf8')}; COMMIT;`)
     return 'created'
   } finally {

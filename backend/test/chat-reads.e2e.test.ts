@@ -273,14 +273,15 @@ test('GET chats/students ограничивает список ролью и и�
     headers: authHeaders(studentMaxUserId),
   })
   assert.equal(student.statusCode, 200)
-  assert.deepEqual(student.json(), {
-    ok: true,
-    data: {
-      students: [
-        { id: fixtureIds.studentId, full_name: 'Анна Ученица', status: 'studying' },
-      ],
-    },
-  })
+  const brief = (list: Array<{ id: number; full_name: string; status: string }>) =>
+    list.map(({ id, full_name, status }) => ({ id, full_name, status }))
+  assert.equal(student.json().ok, true)
+  assert.deepEqual(brief(student.json().data.students), [
+    { id: fixtureIds.studentId, full_name: 'Анна Ученица', status: 'studying' },
+  ])
+  const own = student.json().data.students[0]
+  assert.ok(Array.isArray(own.teachers) && own.teachers.length > 0)
+  assert.ok(own.last_message && typeof own.last_message.sender_name === 'string')
 
   const teacher = await app.inject({
     method: 'GET',
@@ -288,7 +289,7 @@ test('GET chats/students ограничивает список ролью и и�
     headers: authHeaders(teacherMaxUserId),
   })
   assert.equal(teacher.statusCode, 200)
-  assert.deepEqual(teacher.json().data.students, [
+  assert.deepEqual(brief(teacher.json().data.students), [
     { id: fixtureIds.studentId, full_name: 'Анна Ученица', status: 'studying' },
   ])
 
@@ -306,10 +307,8 @@ test('GET chats/students ограничивает список ролью и и�
     headers: authHeaders(adminMaxUserId),
   })
   assert.equal(admin.statusCode, 200)
-  assert.deepEqual(admin.json().data.students, [
-    { id: fixtureIds.studentId, full_name: 'Анна Ученица', status: 'studying' },
-    { id: fixtureIds.secondStudentId, full_name: 'Борис Ученик', status: 'studying' },
-  ])
+  // Сортировка по последней активности: порядок зависит от переписки, проверяем состав.
+  assert.deepEqual(new Set(brief(admin.json().data.students).map(({ id }) => id)), new Set([fixtureIds.studentId, fixtureIds.secondStudentId]))
 
   const guest = await app.inject({
     method: 'GET',
@@ -714,4 +713,39 @@ test('POST chats/messages сохраняет validation и очищает oversi
     })
     assert.deepEqual(readdirSync(uploads).sort(), beforeFiles)
   })
+})
+
+test('непрочитанные: счётчик по чату, отметка прочтения и новые сообщения', async () => {
+  const unreadFor = async (maxUserId: number) => {
+    const response = await app.inject({ method: 'GET', url: `/api/chats/students?max_user_id=${maxUserId}`, headers: authHeaders(maxUserId) })
+    const thread = response.json().data.students.find((s: { id: number }) => s.id === fixtureIds.studentId)
+    return thread?.unread_count as number
+  }
+  const markRead = async (maxUserId: number) =>
+    await app.inject({
+      method: 'POST',
+      url: '/api/chats/read',
+      headers: { ...authHeaders(maxUserId), 'content-type': 'application/json' },
+      payload: { max_user_id: maxUserId, student_id: fixtureIds.studentId },
+    })
+
+  assert.ok((await unreadFor(teacherMaxUserId)) > 0)
+  assert.equal((await markRead(teacherMaxUserId)).statusCode, 200)
+  assert.equal(await unreadFor(teacherMaxUserId), 0)
+
+  const studentUnreadBefore = await unreadFor(studentMaxUserId)
+  const body = multipartMessage({ max_user_id: studentMaxUserId, student_id: fixtureIds.studentId, text_content: 'Новый вопрос' })
+  const sent = await app.inject({
+    method: 'POST',
+    url: '/api/chats/messages',
+    headers: { ...authHeaders(studentMaxUserId), ...body.headers },
+    payload: body.payload,
+  })
+  assert.equal(sent.statusCode, 200, sent.body)
+  assert.equal(await unreadFor(teacherMaxUserId), 1)
+  assert.ok((await unreadFor(adminMaxUserId)) >= 1)
+  // Своё сообщение автору непрочитанным не считается.
+  assert.equal(await unreadFor(studentMaxUserId), studentUnreadBefore)
+
+  assert.equal((await markRead(unassignedTeacherMaxUserId)).statusCode, 403)
 })

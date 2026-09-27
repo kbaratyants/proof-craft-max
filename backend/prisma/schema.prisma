@@ -35,6 +35,18 @@ model audit_log {
   @@index([created_at], map: "idx_audit_log_created")
 }
 
+model chat_reads {
+  id                   Int      @id @default(autoincrement())
+  user_id              Int
+  student_id           Int
+  last_read_message_id Int      @default(0)
+  updated_at           String   @default(dbgenerated("datetime('now')"))
+  users                users    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  students             students @relation(fields: [student_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([user_id, student_id], map: "sqlite_autoindex_chat_reads_1")
+}
+
 model chat_messages {
   id             Int      @id @default(autoincrement())
   student_id     Int
@@ -180,6 +192,7 @@ model students {
   avatar_file_id        String?
   about_me              String?
   chat_messages         chat_messages[]
+  chat_reads            chat_reads[]
   feedback_invites      feedback_invites[]
   homeworks             homeworks[]
   private_feedback      private_feedback[]
@@ -243,6 +256,7 @@ model users {
   app_notifications    app_notifications[]
   audit_log            audit_log[]
   chat_messages        chat_messages[]
+  chat_reads           chat_reads[]
   homework_comments    homework_comments[]
   students             students?
   teacher_applications teacher_applications[]

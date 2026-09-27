@@ -14,6 +14,7 @@ import { ChatRepository } from './chat.repository.js'
 import {
   ListChatMessagesUseCase,
   ListChatStudentsUseCase,
+  MarkChatReadUseCase,
 } from './chat.use-cases.js'
 import { GetChatMessageFileUseCase } from './get-chat-message-file.use-case.js'
 import { PrismaChatRepository } from './prisma-chat.repository.js'
@@ -33,10 +34,11 @@ import { SendChatMessageUseCase } from './send-chat-message.use-case.js'
     GetChatMessageFileUseCase,
     ListChatMessagesUseCase,
     ListChatStudentsUseCase,
+    MarkChatReadUseCase,
     SendChatMessageUseCase,
     { provide: ChatRepository, useClass: PrismaChatRepository },
     { provide: ChatAttachmentStorage, useClass: StoredChatAttachmentStorage },
   ],
+  exports: [SendChatMessageUseCase],
 })
 export class ChatModule {}
-  exports: [SendChatMessageUseCase],

@@ -18,7 +18,7 @@ export class PrismaChatRepository implements ChatRepository {
   async findOwnStudent(userId: number): Promise<ChatStudent | null> {
     const student = await this.prisma.students.findUnique({
       where: { user_id: userId },
-      select: { id: true, full_name: true, status: true },
+      select: this.studentSelect(),
     })
     return student ? this.mapStudent(student) : null
   }
@@ -27,7 +27,7 @@ export class PrismaChatRepository implements ChatRepository {
     const students = await this.prisma.students.findMany({
       where: { status: { in: ['studying', 'completed'] } },
       orderBy: { full_name: 'asc' },
-      select: { id: true, full_name: true, status: true },
+      select: this.studentSelect(),
     })
     return students.map((student) => this.mapStudent(student))
   }
@@ -39,7 +39,7 @@ export class PrismaChatRepository implements ChatRepository {
         student_teachers: { some: { teachers: { user_id: teacherUserId } } },
       },
       orderBy: { full_name: 'asc' },
-      select: { id: true, full_name: true, status: true },
+      select: this.studentSelect(),
     })
     return students.map((student) => this.mapStudent(student))
   }
@@ -152,6 +152,31 @@ export class PrismaChatRepository implements ChatRepository {
     })
   }
 
+  async unreadCounts(userId: number): Promise<Map<number, number>> {
+    const rows = await this.prisma.$queryRaw<Array<{ student_id: number; unread: bigint | number }>>`
+      SELECT m.student_id AS student_id, COUNT(*) AS unread
+      FROM chat_messages m
+      LEFT JOIN chat_reads r ON r.student_id = m.student_id AND r.user_id = ${userId}
+      WHERE m.sender_user_id <> ${userId} AND m.id > COALESCE(r.last_read_message_id, 0)
+      GROUP BY m.student_id
+    `
+    return new Map(rows.map((row) => [Number(row.student_id), Number(row.unread)]))
+  }
+
+  async markRead(userId: number, studentId: number, now: string): Promise<void> {
+    const last = await this.prisma.chat_messages.findFirst({
+      where: { student_id: studentId },
+      orderBy: { id: 'desc' },
+      select: { id: true },
+    })
+    const lastId = last?.id ?? 0
+    await this.prisma.chat_reads.upsert({
+      where: { user_id_student_id: { user_id: userId, student_id: studentId } },
+      create: { user_id: userId, student_id: studentId, last_read_message_id: lastId, updated_at: now },
+      update: { last_read_message_id: lastId, updated_at: now },
+    })
+  }
+
   private messageSelect() {
     return {
       id: true,
@@ -174,12 +199,31 @@ export class PrismaChatRepository implements ChatRepository {
     } as const
   }
 
+  private studentSelect() {
+    return {
+      id: true,
+      full_name: true,
+      status: true,
+      student_teachers: { select: { teachers: { select: { full_name: true } } } },
+      chat_messages: { orderBy: { id: 'desc' as const }, take: 1, select: this.messageSelect() },
+    } as const
+  }
+
   private mapStudent(student: {
     id: number
     full_name: string
     status: string
+    student_teachers: Array<{ teachers: { full_name: string } }>
+    chat_messages: Array<NonNullable<PrismaMessage>>
   }): ChatStudent {
-    return { id: student.id, fullName: student.full_name, status: student.status }
+    const last = student.chat_messages[0]
+    return {
+      id: student.id,
+      fullName: student.full_name,
+      status: student.status,
+      teacherNames: student.student_teachers.map(({ teachers }) => teachers.full_name),
+      lastMessage: last ? this.mapMessage(last) : null,
+    }
   }
 
   private mapMessage(message: NonNullable<PrismaMessage>): ChatMessageRecord {

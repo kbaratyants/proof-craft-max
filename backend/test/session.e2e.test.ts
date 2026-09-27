@@ -104,6 +104,7 @@ const expectedStudentSession = {
   ok: true,
   data: {
     hasUser: true,
+    user_id: 1,
     role: 'student',
     roles: ['student'],
     isAdmin: false,
@@ -200,6 +201,7 @@ test('GET /api/session возвращает гостевой контракт д
     ok: true,
     data: {
       hasUser: false,
+      user_id: null,
       role: null,
       roles: [],
       isAdmin: false,

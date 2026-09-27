@@ -1,4 +1,5 @@
 import {
+  Body,
   Controller,
   Get,
   HttpCode,
@@ -12,6 +13,7 @@ import {
 } from '@nestjs/common'
 import type { FastifyReply } from 'fastify'
 import { AuthenticationGuard } from '../auth/authentication.guard.js'
+import { parsePositiveId } from '../common/parse-positive-id.js'
 import { CurrentPrincipal } from '../auth/current-principal.decorator.js'
 import type { AuthenticatedPrincipal } from '../auth/auth.types.js'
 import {
@@ -29,6 +31,7 @@ import {
 import {
   ListChatMessagesUseCase,
   ListChatStudentsUseCase,
+  MarkChatReadUseCase,
 } from './chat.use-cases.js'
 import {
   GetChatMessageFileUseCase,
@@ -43,6 +46,8 @@ export class ChatController {
   constructor(
     @Inject(ListChatStudentsUseCase)
     private readonly listStudents: ListChatStudentsUseCase,
+    @Inject(MarkChatReadUseCase)
+    private readonly markRead: MarkChatReadUseCase,
     @Inject(ListChatMessagesUseCase)
     private readonly listMessages: ListChatMessagesUseCase,
     @Inject(GetChatMessageFileUseCase)
@@ -72,6 +77,13 @@ export class ChatController {
   @UseGuards(AuthenticationGuard)
   async students(@CurrentPrincipal() principal: AuthenticatedPrincipal): Promise<object> {
     return await this.listStudents.execute(principal)
+  }
+
+  @Post('read')
+  @HttpCode(HttpStatus.OK)
+  @UseGuards(AuthenticationGuard)
+  async read(@CurrentPrincipal() principal: AuthenticatedPrincipal, @Body() body: unknown): Promise<object> {
+    return await this.markRead.execute(principal, parsePositiveId(String((body as { student_id?: unknown } | null)?.student_id ?? '')))
   }
 
   @Get('messages')

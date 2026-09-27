@@ -2,6 +2,9 @@ export type ChatStudent = {
   id: number
   fullName: string
   status: string
+  /** Преподаватели ученика — участники чата. */
+  teacherNames: string[]
+  lastMessage: ChatMessageRecord | null
 }
 
 export type ChatStudentAccess = {
@@ -57,4 +60,8 @@ export abstract class ChatRepository {
     senderUserId: number,
   ): Promise<ChatMessageTarget | null>
   abstract createMessage(command: CreateChatMessageCommand): Promise<ChatMessageRecord>
+  /** Непрочитанные пользователем чужие сообщения по чатам: student_id → количество. */
+  abstract unreadCounts(userId: number): Promise<Map<number, number>>
+  /** Отмечает чат прочитанным до последнего сообщения. */
+  abstract markRead(userId: number, studentId: number, now: string): Promise<void>
 }

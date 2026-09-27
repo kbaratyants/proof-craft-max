@@ -19,6 +19,8 @@ export class GetSessionUseCase {
       ok: true,
       data: {
         hasUser: Boolean(student) || isAdmin || isTeacher,
+        // Внутренний ID пользователя: клиент отличает свои сообщения в чате от чужих.
+        user_id: principal.user?.id ?? null,
         role: primaryRole,
         roles,
         isAdmin,
