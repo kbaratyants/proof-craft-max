@@ -18,6 +18,7 @@ const expectedTables = [
   'chat_messages',
   'feedback_invites',
   'chat_reads',
+  'demo_viewers',
   'homework_comments',
   'homework_files',
   'homework_reviews',
@@ -34,7 +35,7 @@ const expectedTables = [
   'web_sessions',
 ].sort()
 
-test('Prisma baseline соответствует 19 таблицам схемы и repository читает identity', async () => {
+test('Prisma baseline соответствует 20 таблицам схемы и repository читает identity', async () => {
   const fixture = await createTestDatabase('proof-craft-prisma-')
   const previousDatabaseUrl = process.env.DATABASE_URL
 

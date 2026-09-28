@@ -16,5 +16,6 @@ import { SessionRepository } from './session.repository.js'
       useClass: PrismaSessionRepository,
     },
   ],
+  exports: [GetSessionUseCase],
 })
 export class SessionModule {}

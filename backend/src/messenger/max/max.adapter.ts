@@ -1,11 +1,12 @@
 import { Inject, Injectable, Logger, type OnApplicationShutdown } from '@nestjs/common'
 import { FileReferenceService } from '../../storage/file-reference.service.js'
+import { botCommands } from '../bot-commands.js'
 import { BotRouter } from '../bot.router.js'
-import type { Button, ChannelPort, ChannelUser, IncomingEvent, OutgoingMessage } from '../channel.types.js'
+import type { ChannelPort, ChannelUser, IncomingEvent, OutgoingMessage } from '../channel.types.js'
+import { keyboard } from './max-keyboard.js'
 import {
   MaxBotApiClient,
   type MaxAttachment,
-  type MaxButton,
   type MaxNewMessage,
   type MaxRecipient,
   type MaxUpdate,
@@ -19,24 +20,6 @@ const channelUser = (user: MaxUser): ChannelUser => ({
   firstName: user.first_name ?? null,
   lastName: user.last_name ?? null,
 })
-
-/** Кнопка мини-приложения нужен ник бота; без него — ссылка на сайт с тем же параметром. */
-const toMaxButton = (b: Button): MaxButton | null => {
-  if ('url' in b) return { type: 'link', text: b.text, url: b.url }
-  if ('data' in b) return { type: 'callback', text: b.text, payload: b.data }
-  const bot = String(process.env.MAX_BOT_USERNAME || '').replace(/^@/, '').trim()
-  if (bot) return { type: 'open_app', text: b.text, web_app: bot, payload: b.openApp }
-  const site = process.env.WEB_APP_URL?.trim()
-  if (!site) return null
-  const url = new URL(site)
-  url.searchParams.set(b.openApp, '1')
-  return { type: 'link', text: b.text, url: url.toString() }
-}
-
-const keyboard = (buttons: Button[][] | undefined): MaxAttachment[] => {
-  const rows = (buttons ?? []).map((row) => row.map(toMaxButton).filter((b): b is MaxButton => b != null)).filter((row) => row.length)
-  return rows.length ? [{ type: 'inline_keyboard', payload: { buttons: rows } }] : []
-}
 
 const COMMAND = /^\/([a-z_]+)(?:@\S+)?(?:\s+([\s\S]*))?$/i
 
@@ -90,6 +73,9 @@ export class MaxAdapter implements ChannelPort, OnApplicationShutdown {
   start(token: string): void {
     this.client = new MaxBotApiClient(token)
     this.running = true
+    this.client.setCommands(botCommands()).catch((error: unknown) => {
+      this.logger.warn(`Не удалось обновить меню команд: ${error instanceof Error ? error.message : String(error)}`)
+    })
     this.loop = this.poll()
   }
 

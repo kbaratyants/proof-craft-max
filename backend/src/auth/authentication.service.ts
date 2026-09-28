@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { HttpStatus, Inject, Injectable } from '@nestjs/common'
 import { maxBotToken } from '../common/max-config.js'
+import { isDemoMaxUserId } from '../demo/demo.constants.js'
 import { UserIdentityRepository } from '../persistence/users/user-identity.repository.js'
 import { authHttpError } from './auth.errors.js'
 import type { AuthenticatedPrincipal, AuthenticationRequest } from './auth.types.js'
@@ -29,7 +30,7 @@ export class AuthenticationService {
       return await this.authenticateDownload(request, downloadToken, claimedMaxUserId)
     }
     const webSession = singleHeader(request.headers['x-web-session']).trim()
-    if (webSession) return await this.authenticateWebSession(webSession, claimedMaxUserId)
+    if (webSession) return await this.authenticateWebSession(request, webSession, claimedMaxUserId)
     return await this.authenticateMax(request, claimedMaxUserId)
   }
 
@@ -52,6 +53,7 @@ export class AuthenticationService {
   }
 
   private async authenticateWebSession(
+    request: AuthenticationRequest,
     token: string,
     claimedMaxUserId: number,
   ): Promise<AuthenticatedPrincipal> {
@@ -68,7 +70,16 @@ export class AuthenticationService {
       )
     }
     await this.users.touchWebSession(tokenHash, now)
-    return { provider: 'web-session', claimedMaxUserId, user }
+    const viewer = isDemoMaxUserId(user.maxUserId) ? this.demoViewer(request) : null
+    return { provider: 'web-session', claimedMaxUserId, user, ...(viewer ? { demoViewerMaxUserId: viewer } : {}) }
+  }
+
+  /** Демо открыто из мини-приложения MAX: подписанные данные запуска называют реального зрителя. */
+  private demoViewer(request: AuthenticationRequest): number | null {
+    const raw = singleHeader(request.headers['x-max-init-data']).trim()
+    const botToken = maxBotToken()
+    if (!raw || !botToken) return null
+    return this.maxInitData.parseAndValidate(raw, botToken, Number(process.env.MAX_INIT_DATA_MAX_AGE_SEC || 86_400))
   }
 
   /**

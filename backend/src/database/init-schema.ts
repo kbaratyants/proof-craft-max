@@ -21,6 +21,11 @@ CREATE TABLE IF NOT EXISTS chat_reads (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE,
   FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
 );
+CREATE TABLE IF NOT EXISTS demo_viewers (
+  viewer_max_user_id INTEGER PRIMARY KEY,
+  demo_max_user_id INTEGER NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+);
 `
 
 /**

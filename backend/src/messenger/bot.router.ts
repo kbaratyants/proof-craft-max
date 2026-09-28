@@ -1,10 +1,14 @@
 import { HttpException, Inject, Injectable, Logger } from '@nestjs/common'
+import { withDemoViewer } from '../demo/demo.constants.js'
 import type { ChannelPort, IncomingEvent, OutgoingMessage } from './channel.types.js'
 import { ConversationStore } from './conversation.store.js'
 import { MessengerIdentityService } from './messenger-identity.service.js'
 import type { ScenarioContext } from './scenario.context.js'
 import { AdminScenario } from './scenarios/admin.scenario.js'
+import { DemoScenario } from './scenarios/demo.scenario.js'
+import { InfoScenario } from './scenarios/info.scenario.js'
 import { StartScenario } from './scenarios/start.scenario.js'
+import { StatsScenario } from './scenarios/stats.scenario.js'
 import { TeacherScenario } from './scenarios/teacher.scenario.js'
 
 const errorText = (error: unknown): string | null => {
@@ -24,6 +28,9 @@ export class BotRouter {
     @Inject(StartScenario) private readonly start: StartScenario,
     @Inject(AdminScenario) private readonly admin: AdminScenario,
     @Inject(TeacherScenario) private readonly teacher: TeacherScenario,
+    @Inject(InfoScenario) private readonly info: InfoScenario,
+    @Inject(StatsScenario) private readonly stats: StatsScenario,
+    @Inject(DemoScenario) private readonly demo: DemoScenario,
   ) {}
 
   async handle(channel: ChannelPort, event: IncomingEvent): Promise<void> {
@@ -43,7 +50,10 @@ export class BotRouter {
       await channel.answerButton(event.chatId, event.callbackId, text).catch(() => {})
     }
     try {
-      await this.dispatch(context, event, answer)
+      // Жюри в демо: уведомления, вызванные его действиями в чате, пересылаются ему же.
+      const viewer = principal.demoViewerMaxUserId
+      if (viewer) await withDemoViewer(viewer, () => this.dispatch(context, event, answer))
+      else await this.dispatch(context, event, answer)
     } catch (error) {
       const text = errorText(error)
       if (!text) this.logger.error(`Ошибка обработки ${event.kind}: ${error instanceof Error ? error.stack : String(error)}`)
@@ -55,12 +65,24 @@ export class BotRouter {
 
   private async dispatch(context: ScenarioContext, event: IncomingEvent, answer: (text?: string) => Promise<void>): Promise<void> {
     if (event.kind === 'command') {
-      if (event.command === 'start') return await this.start.start(context, event.args)
-      if (event.command === 'admin') return await this.admin.menu(context)
-      if (event.command === 'teacher') return await this.teacher.menu(context)
-      return
+      switch (event.command) {
+        case 'start': return await this.start.start(context, event.args)
+        case 'admin': return await this.admin.menu(context)
+        case 'teacher': return await this.teacher.menu(context)
+        case 'stats': return await this.stats.stats(context)
+        case 'me': return await this.info.me(context)
+        case 'app': return await this.info.app(context)
+        case 'id': return await this.info.id(context)
+        case 'help': return await this.info.help(context)
+        case 'demo': return await this.demo.menu(context)
+        default:
+          await context.reply('Такой команды нет. Список команд — /help')
+          return
+      }
     }
     if (event.kind === 'button') {
+      if (await this.demo.handleButton(context, event.data, answer)) return
+      if (await this.stats.handleButton(context, event.data, answer)) return
       if (await this.admin.handleButton(context, event.data, answer)) return
       await this.teacher.handleButton(context, event.data, answer)
       return

@@ -122,6 +122,12 @@ CREATE TABLE IF NOT EXISTS chat_reads (
       FOREIGN KEY (student_id) REFERENCES students(id) ON DELETE CASCADE
     );
 
+CREATE TABLE IF NOT EXISTS demo_viewers (
+      viewer_max_user_id INTEGER PRIMARY KEY,
+      demo_max_user_id INTEGER NOT NULL,
+      updated_at TEXT NOT NULL DEFAULT (datetime('now'))
+    );
+
 CREATE TABLE student_profile_edits (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       student_id INTEGER NOT NULL,

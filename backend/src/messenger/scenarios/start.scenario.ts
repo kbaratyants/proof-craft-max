@@ -13,6 +13,10 @@ export class StartScenario {
   async start(context: ScenarioContext, args: string): Promise<void> {
     const payload = args.trim()
     const token = payload.startsWith('webauth_') ? payload.slice('webauth_'.length) : ''
+    if (token && context.principal.demoViewerMaxUserId) {
+      await context.reply('Вы сейчас в демо-академии. Выйдите из демо (/demo → «Выйти из демо») и повторите вход на сайт.')
+      return
+    }
     if (token && context.principal.user) {
       const tokenHash = crypto.createHash('sha256').update(token.trim(), 'utf8').digest('hex')
       const approved = await this.webAuth.approveLoginRequest(tokenHash, 'max', context.principal.user.id, sqliteTimestamp())

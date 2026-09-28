@@ -47,6 +47,13 @@ model chat_reads {
   @@unique([user_id, student_id], map: "sqlite_autoindex_chat_reads_1")
 }
 
+/// Жюри в MAX → текущая демо-роль: уведомления демо приходят зрителю в чат, команды бота работают от демо-роли.
+model demo_viewers {
+  viewer_max_user_id BigInt @id
+  demo_max_user_id   BigInt
+  updated_at         String @default(dbgenerated("datetime('now')"))
+}
+
 model chat_messages {
   id             Int      @id @default(autoincrement())
   student_id     Int

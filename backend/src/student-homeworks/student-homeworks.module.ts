@@ -39,6 +39,6 @@ import { SubmitHomeworkRevisionUseCase } from './submit-homework-revision.use-ca
       useClass: PrismaStudentHomeworksRepository,
     },
   ],
-  exports: [SubmitHomeworkUseCase, HomeworkSubmissionStorage],
+  exports: [SubmitHomeworkUseCase, HomeworkSubmissionStorage, ListStudentHomeworksUseCase],
 })
 export class StudentHomeworksModule {}

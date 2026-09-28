@@ -63,7 +63,7 @@ export class MaxBotApiClient {
   ) {}
 
   async request<T>(
-    httpMethod: 'GET' | 'POST',
+    httpMethod: 'GET' | 'POST' | 'PATCH',
     path: string,
     query: Record<string, string | number | undefined> = {},
     body?: unknown,
@@ -101,6 +101,11 @@ export class MaxBotApiClient {
       undefined,
       signal,
     )
+  }
+
+  /** Команды бота: MAX показывает их подсказками, когда пользователь вводит `/`. */
+  async setCommands(commands: { name: string; description: string }[]): Promise<void> {
+    await this.request('PATCH', 'me/commands', {}, { commands })
   }
 
   /** Вложение, загруженное только что, может быть ещё не обработано — MAX отвечает `attachment.not.ready`. */

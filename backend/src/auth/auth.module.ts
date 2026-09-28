@@ -9,6 +9,6 @@ import { RolesGuard } from './roles.guard.js'
 @Module({
   imports: [PersistenceModule],
   providers: [AuthenticationService, AuthenticationGuard, RolesGuard, MaxInitDataService, DownloadTokenService],
-  exports: [AuthenticationService, AuthenticationGuard, RolesGuard, DownloadTokenService],
+  exports: [AuthenticationService, AuthenticationGuard, RolesGuard, DownloadTokenService, MaxInitDataService],
 })
 export class AuthModule {}

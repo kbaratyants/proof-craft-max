@@ -25,3 +25,18 @@ const simulation = new AsyncLocalStorage<true>()
 export const runAsDemoSimulation = <T>(fn: () => Promise<T>): Promise<T> => simulation.run(true, fn)
 
 export const insideDemoSimulation = (): boolean => simulation.getStore() === true
+
+export const DEMO_ROLE_LABELS: Record<DemoRole, string> = { admin: 'администратор', teacher: 'преподаватель', student: 'ученик' }
+
+export const demoRoleOf = (maxUserId: number): DemoRole | null =>
+  (Object.keys(DEMO_ACCOUNTS) as DemoRole[]).find((role) => DEMO_ACCOUNTS[role] === maxUserId) ?? null
+
+const viewer = new AsyncLocalStorage<number>()
+
+/**
+ * Реальный пользователь MAX, который смотрит демо (жюри). Уведомления демо-пользователям,
+ * вызванные его действиями, бот пересылает ему в чат; реальным пользователям из этого контекста ничего не уходит.
+ */
+export const withDemoViewer = <T>(viewerMaxUserId: number, fn: () => T): T => viewer.run(viewerMaxUserId, fn)
+
+export const currentDemoViewer = (): number | null => viewer.getStore() ?? null
