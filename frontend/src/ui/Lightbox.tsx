@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { downloadFile, downloadName, openFile } from '../api/files'
+import { downloadFile, downloadName } from '../api/files'
 import { useApp } from '../app/store'
 import { AuthImg } from './AuthImg'
 import { ICO } from './icons'
@@ -184,16 +184,6 @@ export function Lightbox() {
           style={linkStyle}
         >
           Скачать
-        </button>
-        <button
-          type="button"
-          onClick={(event) => {
-            event.stopPropagation()
-            void openFile(item.full, toast)
-          }}
-          style={linkStyle}
-        >
-          Открыть оригинал
         </button>
       </div>
     </div>
