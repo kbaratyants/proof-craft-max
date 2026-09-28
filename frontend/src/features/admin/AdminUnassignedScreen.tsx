@@ -18,12 +18,12 @@ function UnassignedRow({ student, teachers }: { student: AdminStudent; teachers:
     try {
       const { platform, appUserId } = useApp.getState()
       await apiPost(platform, '/api/admin/assign-student', { max_user_id: appUserId, teacher_id: teacherId, student_id: student.id })
-      toast(`${student.full_name}: назначен преподаватель ${teachers.find((t) => t.id === teacherId)?.full_name ?? ''}`)
+      toast(`${student.full_name}: назначен преподаватель ${teachers.find((t) => t.id === teacherId)?.full_name ?? ''}`, 'success')
       await queryClient.invalidateQueries({ queryKey: adminKeys.students() })
       await queryClient.invalidateQueries({ queryKey: adminKeys.teachers() })
       await refreshSessionQuiet()
     } catch (error) {
-      toast(error instanceof Error && error.message ? error.message : 'Не удалось назначить преподавателя')
+      toast(error instanceof Error && error.message ? error.message : 'Не удалось назначить преподавателя', 'error')
       setBusy(false)
     }
   }

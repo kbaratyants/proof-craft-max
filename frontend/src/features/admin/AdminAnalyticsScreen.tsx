@@ -55,11 +55,11 @@ function TeacherRow({ t }: { t: TeacherLoad }) {
     try {
       const { platform, appUserId } = useApp.getState()
       await apiPost(platform, `/api/admin/teachers/${t.teacher_id}/remind`, { max_user_id: appUserId })
-      toast(`Напоминание отправлено: ${t.full_name}`)
+      toast(`Напоминание отправлено: ${t.full_name}`, 'success')
       setDone(true)
       await queryClient.invalidateQueries({ queryKey: analyticsKey })
     } catch (error) {
-      toast(error instanceof Error && error.message ? error.message : 'Не удалось отправить напоминание')
+      toast(error instanceof Error && error.message ? error.message : 'Не удалось отправить напоминание', 'error')
     } finally {
       setBusy(false)
     }

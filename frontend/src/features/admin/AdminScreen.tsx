@@ -125,7 +125,9 @@ export function AdminScreen() {
   const unread = useApp((s) => Number(s.session?.unread_notifications_count || 0))
   const moderation = useAdminModeration()
   const unreadChats = useUnreadChats()
-  const pendingCount = (moderation.data?.students.length ?? 0) + (moderation.data?.applications.length ?? 0) + (moderation.data?.edits.length ?? 0)
+  const pendingCount = moderation.data
+    ? moderation.data.students.length + moderation.data.applications.length + moderation.data.edits.length
+    : undefined
   return (
     <>
       {tab === 'pending' && (

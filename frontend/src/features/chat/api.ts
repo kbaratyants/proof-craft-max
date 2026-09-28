@@ -72,7 +72,8 @@ export async function markChatRead(studentId: string) {
 }
 
 /** Сумма непрочитанных по всем доступным чатам — для бейджа на вкладке. */
-export function useUnreadChats(): number {
+export function useUnreadChats(): number | undefined {
   const threads = useChatThreads()
-  return (threads.data ?? []).reduce((sum, t) => sum + Number(t.unread_count || 0), 0)
+  // undefined, пока чаты не загружены: иначе появление счётчика выглядело бы как новое сообщение.
+  return threads.data?.reduce((sum, t) => sum + Number(t.unread_count || 0), 0)
 }

@@ -16,14 +16,14 @@ export async function openHwFromNotif(queryClient: QueryClient, notification: Ap
   }
   await refreshSessionQuiet()
   if (!homeworkId) {
-    toast('Не удалось открыть задание')
+    toast('Не удалось открыть задание', 'error')
     return
   }
   if (session?.student) {
     const homeworks = await queryClient.fetchQuery({ queryKey: ['student', 'homeworks', appUserId], queryFn: fetchStudentHomeworks })
     const hw = homeworks.find((x) => Number(x.id) === homeworkId)
     if (!hw) {
-      toast('Работа не найдена')
+      toast('Работа не найдена', 'error')
       return
     }
     useApp.getState().go('hw-view', { homework: hw })
@@ -31,7 +31,7 @@ export async function openHwFromNotif(queryClient: QueryClient, notification: Ap
   }
   if (session?.isTeacher) {
     if (!studentId) {
-      toast('Нет данных об ученике')
+      toast('Нет данных об ученике', 'error')
       return
     }
     const known = queryClient.getQueryData<TeacherStudent[]>(['teacher', 'students', appUserId])?.find((s) => Number(s.id) === studentId)
@@ -44,7 +44,7 @@ export async function openHwFromNotif(queryClient: QueryClient, notification: Ap
     if (data.student?.full_name) useApp.getState().patch({ selectedStudent: { id: studentId, full_name: data.student.full_name } })
     const hw = data.homeworks.find((x) => Number(x.id) === homeworkId)
     if (!hw) {
-      toast('Работа не найдена')
+      toast('Работа не найдена', 'error')
       return
     }
     useApp.getState().go('hw-view', { homework: hw })
@@ -52,14 +52,14 @@ export async function openHwFromNotif(queryClient: QueryClient, notification: Ap
   }
   if (session?.isAdmin) {
     if (!studentId) {
-      toast('Нет данных об ученике')
+      toast('Нет данных об ученике', 'error')
       return
     }
     useApp.getState().patch({ adminStudentId: studentId, teacherStudentId: null })
     const data = await queryClient.fetchQuery({ queryKey: adminKeys.student(studentId), queryFn: () => fetchAdminStudentProfile(studentId), staleTime: 0 })
     const hw = data.homeworks.find((x) => Number(x.id) === homeworkId)
     if (!hw) {
-      toast('Работа не найдена')
+      toast('Работа не найдена', 'error')
       return
     }
     useApp.getState().go('hw-view', { homework: hw })

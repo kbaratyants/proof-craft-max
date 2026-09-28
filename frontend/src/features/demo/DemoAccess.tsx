@@ -15,7 +15,7 @@ export function DemoAccess({ disabled = false, framed = true }: { disabled?: boo
     try {
       await demoLogin(role)
     } catch (error) {
-      toast(error instanceof Error && error.message ? error.message : 'Не удалось войти в демо')
+      toast(error instanceof Error && error.message ? error.message : 'Не удалось войти в демо', 'error')
       setBusy(null)
     }
   }

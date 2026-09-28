@@ -1,6 +1,7 @@
 import { apiPost } from '../../api/client'
 import { useApp } from '../../app/store'
 import { Header } from '../../ui/Header'
+import { useClosingGuard } from '../../ui/useClosingGuard'
 
 type Subject = 'teacher' | 'academy' | 'other'
 
@@ -43,6 +44,7 @@ const resetFeedback = () =>
 /** Конфиденциальный отзыв администратору. */
 export function FeedbackScreen() {
   const f = useApp((s) => s.feedback)
+  useClosingGuard(!f.sent && f.message.trim().length > 0)
   return (
     <>
       <Header title="Обратная связь" onBack={() => useApp.getState().back()} />

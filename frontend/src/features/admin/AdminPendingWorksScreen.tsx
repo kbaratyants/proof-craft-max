@@ -34,7 +34,7 @@ async function openWork(work: PendingWork) {
     useApp.getState().patch({ adminStudentId: work.student_id, teacherStudentId: null })
     useApp.getState().go('hw-view', { homework: homework as StudentHomework })
   } catch (error) {
-    toast(error instanceof Error && error.message ? error.message : 'Не удалось открыть работу')
+    toast(error instanceof Error && error.message ? error.message : 'Не удалось открыть работу', 'error')
   }
 }
 
@@ -47,10 +47,10 @@ function WorkRow({ work, teachers }: { work: PendingWork; teachers: string[] }) 
     try {
       const { platform, appUserId } = useApp.getState()
       const data = await apiPost<{ notified: string[] }>(platform, `/api/admin/homeworks/${work.id}/remind`, { max_user_id: appUserId })
-      toast(`Напоминание отправлено: ${data.notified.join(', ')}`)
+      toast(`Напоминание отправлено: ${data.notified.join(', ')}`, 'success')
       setReminded(true)
     } catch (error) {
-      toast(error instanceof Error && error.message ? error.message : 'Не удалось отправить напоминание')
+      toast(error instanceof Error && error.message ? error.message : 'Не удалось отправить напоминание', 'error')
     } finally {
       setBusy(false)
     }

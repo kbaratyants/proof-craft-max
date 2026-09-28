@@ -17,31 +17,31 @@ export async function setStudentStatus(queryClient: QueryClient, studentId: numb
       action,
       ...(action === 'approve' && teacherIds.length ? { teacher_ids: teacherIds } : {}),
     })
-    toast('Готово')
+    toast('Готово', 'success')
     await queryClient.invalidateQueries({ queryKey: adminKeys.moderation() })
     await refreshSessionQuiet()
   } catch (error) {
-    toast(message(error))
+    toast(message(error), 'error')
   }
 }
 
 export async function reviewTeacherApplication(queryClient: QueryClient, applicationId: number, action: 'approve' | 'reject') {
   try {
     await post('/api/admin/teacher-applications', { application_id: applicationId, action })
-    toast('Готово')
+    toast('Готово', 'success')
     await queryClient.invalidateQueries({ queryKey: adminKeys.moderation() })
   } catch (error) {
-    toast(message(error))
+    toast(message(error), 'error')
   }
 }
 
 export async function reviewProfileEdit(queryClient: QueryClient, editId: number, action: 'approve' | 'reject') {
   try {
     await post(`/api/admin/profile-edits/${editId}`, { action })
-    toast(action === 'approve' ? 'Изменения одобрены' : 'Заявка отклонена')
+    toast(action === 'approve' ? 'Изменения одобрены' : 'Заявка отклонена', 'success')
     await queryClient.invalidateQueries({ queryKey: adminKeys.moderation() })
   } catch (error) {
-    toast(message(error))
+    toast(message(error), 'error')
   }
 }
 
@@ -57,12 +57,12 @@ export async function saveStudentSettings(queryClient: QueryClient, studentId: n
       student_track: settings.track || undefined,
       teacher_ids: settings.track === 'barber' ? [] : settings.teacherIds,
     })
-    toast(settings.track === 'barber' ? 'Барбер: привязка к преподавателям снята' : 'Сохранено')
+    toast(settings.track === 'barber' ? 'Барбер: привязка к преподавателям снята' : 'Сохранено', 'success')
     useApp.getState().patch({ adminEditOpenId: null })
     await queryClient.invalidateQueries({ queryKey: adminKeys.students() })
     await refreshSessionQuiet()
   } catch (error) {
-    toast(message(error))
+    toast(message(error), 'error')
   }
 }
 

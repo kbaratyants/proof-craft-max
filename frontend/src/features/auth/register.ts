@@ -34,7 +34,7 @@ export async function submitStudentRegistration(form: StudentForm) {
   const metro = form.metro.trim()
   const lessons = form.lessons.trim()
   if (!fn || !ln || !phone || !lessons) {
-    toast('Заполните обязательные поля')
+    toast('Заполните обязательные поля', 'warning')
     return
   }
   const { platform, appUserId } = useApp.getState()
@@ -48,11 +48,11 @@ export async function submitStudentRegistration(form: StudentForm) {
       last_name: ln,
       metro: metro || undefined,
     })
-    toast('Заявка отправлена')
+    toast('Заявка отправлена', 'success')
     useApp.getState().go('loading')
     await bootstrap()
   } catch (error) {
-    toast(errorMessage(error, 'Не удалось отправить'))
+    toast(errorMessage(error, 'Не удалось отправить'), 'error')
   }
 }
 
@@ -63,7 +63,7 @@ export async function submitTeacherApplication(form: TeacherForm) {
   const ln = form.lastName.trim()
   const phone = form.phone.trim()
   if (!fn || !ln || !phone) {
-    toast('Заполните все поля')
+    toast('Заполните все поля', 'warning')
     return
   }
   const { platform, appUserId } = useApp.getState()
@@ -74,9 +74,9 @@ export async function submitTeacherApplication(form: TeacherForm) {
       phone,
     })
     useApp.getState().patch({ teacherApplicationSent: true })
-    toast('Заявка отправлена')
+    toast('Заявка отправлена', 'success')
   } catch (error) {
-    toast(errorMessage(error, 'Не удалось отправить'))
+    toast(errorMessage(error, 'Не удалось отправить'), 'error')
   }
 }
 

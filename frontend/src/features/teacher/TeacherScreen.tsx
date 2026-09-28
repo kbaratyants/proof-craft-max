@@ -330,7 +330,7 @@ export function TeacherScreen() {
         onSelect={setTab}
         tabs={[
           { key: 'profile', icon: ICO.user, label: 'Профиль' },
-          { key: 'review', icon: ICO.check, label: 'Проверить', count: Number(dashboard.data?.pendingCount || 0) },
+          { key: 'review', icon: ICO.check, label: 'Проверить', count: dashboard.data ? Number(dashboard.data.pendingCount || 0) : undefined },
           { key: 'students', icon: ICO.users, label: 'Ученики' },
           { key: 'chats', icon: ICO.chat, label: 'Чаты', count: unreadChats },
           { key: 'notifs', icon: ICO.bell, label: 'Увед.', count: unread },

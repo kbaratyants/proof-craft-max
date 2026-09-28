@@ -13,6 +13,8 @@ import { toast } from '../../ui/toast'
 import type { StudentHomework } from '../student/api'
 import { addHomeworkComment, openHomeworkEdit, saveHomeworkReview, submitHomeworkRevision } from './actions'
 import { HomeworkEditModal } from './HomeworkEditModal'
+import { useClosingGuard } from '../../ui/useClosingGuard'
+import { haptic } from '../../platform/bridge'
 
 const sectionLabel = {
   fontSize: 12,
@@ -86,6 +88,7 @@ function CorrectionForm({ hw }: { hw: StudentHomework }) {
   const queryClient = useQueryClient()
   const [text, setText] = useState(hw.revision_student_text || hw.text_content || '')
   const [file, setFile] = useState<File | null>(null)
+  useClosingGuard(file != null || text !== (hw.revision_student_text || hw.text_content || ''))
   // После обновления работы поле показывает сохранённое на сервере исправление.
   useEffect(() => {
     setText(hw.revision_student_text || hw.text_content || '')
@@ -171,6 +174,7 @@ function CommentsPanel({ hw, isOwner, canComment }: { hw: StudentHomework; isOwn
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState('')
   useEffect(() => setDraft(''), [hw])
+  useClosingGuard(draft.trim().length > 0)
   const comments = Array.isArray(hw.comments) ? hw.comments : []
   if (!canComment && !comments.length) return null
   const placeholder = isOwner ? 'Ответить на комментарий или описать исправление…' : 'Написать дополнительный комментарий…'
@@ -246,6 +250,7 @@ function ReviewPanel({ hw }: { hw: StudentHomework }) {
   // Кнопка пересчитывается только после действий пользователя: до них она неактивна.
   const [touched, setTouched] = useState(false)
   const ready = touched && (rating > 0 || comment.trim().length > 0)
+  useClosingGuard(ready)
   const label = touched && rating === 0 && comment.trim().length > 0 ? 'Отправить комментарий' : 'Принять'
   return (
     <div className="card" style={{ marginTop: 8 }}>
@@ -261,6 +266,7 @@ function ReviewPanel({ hw }: { hw: StudentHomework }) {
               type="button"
               id={`hw-star-${n}`}
               onClick={() => {
+                haptic.select()
                 setRating((prev) => (prev === n ? 0 : n))
                 setTouched(true)
               }}

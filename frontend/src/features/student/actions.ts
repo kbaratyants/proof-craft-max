@@ -31,9 +31,9 @@ export function changeAvatar() {
       if (session?.student) {
         useApp.getState().patch({ session: { ...session, student: { ...session.student, has_avatar: true } }, imageEpoch: imageEpoch + 1 })
       }
-      toast('Аватар обновлён')
+      toast('Аватар обновлён', 'success')
     } catch (error) {
-      toast(message(error, 'Не удалось загрузить фото'))
+      toast(message(error, 'Не удалось загрузить фото'), 'error')
     }
   })
   document.body.appendChild(input)
@@ -47,9 +47,9 @@ export async function saveAbout(text: string) {
     await apiPost(platform, '/api/student/about', { max_user_id: appUserId, about_me: about })
     const { session } = useApp.getState()
     if (session?.student) useApp.getState().patch({ session: { ...session, student: { ...session.student, about_me: about } } })
-    toast('Сохранено')
+    toast('Сохранено', 'success')
   } catch (error) {
-    toast(message(error, 'Не удалось сохранить'))
+    toast(message(error, 'Не удалось сохранить'), 'error')
   }
 }
 
@@ -77,7 +77,7 @@ export async function submitProfileEdit(form: { firstName: string; lastName: str
       metro: metro || undefined,
     })
     closeProfileEdit()
-    toast('Заявка отправлена, ожидайте одобрения')
+    toast('Заявка отправлена, ожидайте одобрения', 'success')
   } catch (error) {
     setModal({ busy: false, error: message(error, 'Не удалось отправить') })
   }

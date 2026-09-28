@@ -7,6 +7,8 @@ import { iconButtonLabel } from '../../ui/a11y'
 import { ICO } from '../../ui/icons'
 import { toast } from '../../ui/toast'
 import { chatQueryKey, markChatRead, sendChatMessage, useChatMessages, type ChatMessage } from './api'
+import { useClosingGuard } from '../../ui/useClosingGuard'
+import { haptic } from '../../platform/bridge'
 
 function Message({ m, ownUserId }: { m: ChatMessage; ownUserId: number }) {
   const mine = Number(m.sender_user_id) === ownUserId
@@ -41,6 +43,7 @@ export function ChatPanel({ header }: { header?: ReactNode } = {}) {
   const selectedStudent = useApp((s) => s.selectedStudent) as { id?: number } | null
   const queryClient = useQueryClient()
   const [draft, setDraft] = useState('')
+  useClosingGuard(draft.trim().length > 0)
   const isTeacherOrAdmin = Boolean(session?.isTeacher || session?.isAdmin)
   const threadId = isTeacherOrAdmin
     ? selectedStudent?.id != null
@@ -66,10 +69,11 @@ export function ChatPanel({ header }: { header?: ReactNode } = {}) {
     setDraft('')
     try {
       await sendChatMessage(threadId, text)
+      haptic.tap()
       await queryClient.invalidateQueries({ queryKey: chatQueryKey(threadId) })
       await refreshSessionQuiet()
     } catch (error) {
-      toast((error instanceof Error && error.message) || 'Не удалось отправить')
+      toast((error instanceof Error && error.message) || 'Не удалось отправить', 'error')
     }
   }
 

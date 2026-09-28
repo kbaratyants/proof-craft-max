@@ -8,6 +8,19 @@ export type MaxWebApp = {
   ready: () => void
   expand?: () => void
   BackButton?: { show: () => void; hide: () => void; onClick: (cb: () => void) => void; offClick: (cb: () => void) => void }
+  HapticFeedback?: {
+    impactOccurred: (style: 'soft' | 'light' | 'medium' | 'heavy' | 'rigid', disableVibrationFallback?: boolean) => void
+    notificationOccurred: (type: 'error' | 'success' | 'warning', disableVibrationFallback?: boolean) => void
+    selectionChanged: (disableVibrationFallback?: boolean) => void
+  }
+  enableClosingConfirmation?: () => void
+  disableClosingConfirmation?: () => void
+  /** Выбор чата MAX и отправка в него текста со ссылкой. */
+  shareMaxContent?: (params: { text?: string; link?: string }) => void
+  /** Системное меню «Поделиться» телефона. */
+  shareContent?: (params: { text?: string; link?: string }) => void
+  /** Скачивание файла средствами клиента MAX; URL должен открываться без заголовков авторизации. */
+  downloadFile?: (url: string, fileName: string) => void
 }
 
 declare global {

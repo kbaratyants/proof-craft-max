@@ -17,7 +17,7 @@ export function FillFromMax({ onFill }: { onFill: (values: Filled) => void }) {
     if (name) onFill({ ...(name.firstName ? { firstName: name.firstName } : {}), ...(name.lastName ? { lastName: name.lastName } : {}) })
     const phone = await requestMaxPhone()
     if (phone) onFill({ phone })
-    else toast('Телефон из MAX не получен — введите его вручную')
+    else toast('Телефон из MAX не получен — введите его вручную', 'warning')
     setBusy(false)
   }
   return (

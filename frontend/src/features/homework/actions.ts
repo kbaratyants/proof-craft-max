@@ -5,6 +5,7 @@ import { refreshSessionQuiet } from '../../app/session'
 import { HW_EDIT_CLOSED, useApp } from '../../app/store'
 import { compressImageToJpegFile } from '../../domain/image'
 import { clearAuthImages } from '../../ui/AuthImg'
+import { haptic } from '../../platform/bridge'
 import { toast } from '../../ui/toast'
 import { adminKeys } from '../admin/api'
 import { fetchStudentHomeworks } from '../student/api'
@@ -48,7 +49,7 @@ export async function addDraftPhotos(files: File[]) {
   const current = [...useApp.getState().hwNewDraft]
   const room = MAX_PHOTOS - current.length
   if (room <= 0) {
-    toast('Можно не более 5 фотографий')
+    toast('Можно не более 5 фотографий', 'warning')
     return
   }
   for (const f of files.slice(0, room)) {
@@ -56,7 +57,7 @@ export async function addDraftPhotos(files: File[]) {
       const file = await compressImageToJpegFile(f)
       current.push({ url: URL.createObjectURL(file), file })
     } catch {
-      toast('Не удалось обработать фото')
+      toast('Не удалось обработать фото', 'error')
     }
   }
   useApp.getState().patch({ hwNewDraft: current })
@@ -84,27 +85,27 @@ export async function submitHomework(queryClient: QueryClient, form: NewHomework
 
   // Для бонуса номер урока не нужен (поле очищено и заблокировано) — API принимает бонус без него.
   if ((!form.isBonus && !numRaw) || !title || !desc) {
-    toast('Заполните номер задания, название и описание')
+    toast('Заполните номер задания, название и описание', 'warning')
     return
   }
   if (!form.isBonus) {
     const lessonNum = Number(numRaw)
     if (!Number.isInteger(lessonNum) || lessonNum <= 0) {
-      toast('Номер задания — целое число больше нуля')
+      toast('Номер задания — целое число больше нуля', 'warning')
       return
     }
     const maxLessons = app.session?.student?.lessons_count
     if (maxLessons != null && lessonNum > maxLessons) {
-      toast(`Урок №${lessonNum} недоступен. По вашей программе ${maxLessons} уроков.`)
+      toast(`Урок №${lessonNum} недоступен. По вашей программе ${maxLessons} уроков.`, 'warning')
       return
     }
   }
   if (!draft.length) {
-    toast('Добавьте хотя бы одно фото работы')
+    toast('Добавьте хотя бы одно фото работы', 'warning')
     return
   }
   if (draft.length > MAX_PHOTOS) {
-    toast('Можно не более 5 фотографий')
+    toast('Можно не более 5 фотографий', 'warning')
     return
   }
 
@@ -125,6 +126,7 @@ export async function submitHomework(queryClient: QueryClient, form: NewHomework
     if (response.status === 413) throw new Error(payload?.error || 'Файл слишком большой.')
     if (response.status === 409) throw new Error(payload?.error || 'Эта работа уже отправлена на проверку.')
     if (!response.ok || payload?.ok === false) throw new Error(payload?.error || `Ошибка запроса (${response.status}).`)
+    haptic.notify('success')
     useApp.getState().patch({ hwSubmitAbort: null, hwSubmit: { status: 'success', error: '' }, hwNewDraft: [] })
     await sleep(1400)
     useApp.getState().patch({ hwSubmit: { status: 'idle', error: '' } })
@@ -137,6 +139,7 @@ export async function submitHomework(queryClient: QueryClient, form: NewHomework
       useApp.getState().patch({ hwSubmit: { status: 'idle', error: '' } })
       return
     }
+    haptic.notify('error')
     useApp.getState().patch({ hwSubmit: { status: 'error', error: message(error, 'Не удалось отправить') } })
   } finally {
     clearTimeout(timeout)
@@ -151,7 +154,7 @@ export const dismissHomeworkSubmit = () => useApp.getState().patch({ hwSubmit: {
 export async function addHomeworkComment(queryClient: QueryClient, homeworkId: number, text: string) {
   const content = text.trim()
   if (!content) {
-    toast('Напишите комментарий')
+    toast('Напишите комментарий', 'warning')
     return false
   }
   const { platform, appUserId, session } = useApp.getState()
@@ -163,10 +166,10 @@ export async function addHomeworkComment(queryClient: QueryClient, homeworkId: n
     } else if (session?.student?.id) {
       await refreshStudentHomework(queryClient, homeworkId)
     }
-    toast('Комментарий отправлен')
+    toast('Комментарий отправлен', 'success')
     return true
   } catch (error) {
-    toast(message(error, 'Не удалось отправить комментарий'))
+    toast(message(error, 'Не удалось отправить комментарий'), 'error')
     return false
   }
 }
@@ -174,7 +177,7 @@ export async function addHomeworkComment(queryClient: QueryClient, homeworkId: n
 export async function submitHomeworkRevision(queryClient: QueryClient, homeworkId: number, text: string, file: File | null) {
   const content = text.trim()
   if (!content) {
-    toast('Опишите исправление')
+    toast('Опишите исправление', 'warning')
     return
   }
   const body = new FormData()
@@ -184,11 +187,11 @@ export async function submitHomeworkRevision(queryClient: QueryClient, homeworkI
   try {
     const { response, payload } = await postMultipart(`/api/student/homeworks/${encodeURIComponent(homeworkId)}/revision`, body)
     if (!response.ok || payload?.ok === false) throw new Error(payload?.error || `Ошибка запроса (${response.status}).`)
-    toast('Исправление отправлено')
+    toast('Исправление отправлено', 'success')
     await refreshStudentHomework(queryClient, homeworkId)
     await refreshSessionQuiet()
   } catch (error) {
-    toast(message(error, 'Не удалось отправить'))
+    toast(message(error, 'Не удалось отправить'), 'error')
   }
 }
 
@@ -197,7 +200,7 @@ export async function saveHomeworkReview(queryClient: QueryClient, homeworkId: n
   const text = comment.trim() || null
   const grade = rating || null
   if (!grade && !text) {
-    toast('Укажите оценку или напишите комментарий')
+    toast('Укажите оценку или напишите комментарий', 'warning')
     return false
   }
   const { platform, appUserId, session } = useApp.getState()
@@ -208,7 +211,7 @@ export async function saveHomeworkReview(queryClient: QueryClient, homeworkId: n
       rating: grade ?? undefined,
       comment: text ?? undefined,
     })
-    toast(grade ? 'Задание принято' : 'Комментарий сохранён')
+    toast(grade ? 'Задание принято' : 'Комментарий сохранён', 'success')
     // Перечитываем список работ и открытую работу: после проверки форма проверки должна исчезнуть.
     const adminStudentId = useApp.getState().adminStudentId
     if (adminStudentId != null) await queryClient.invalidateQueries({ queryKey: adminKeys.student(adminStudentId) })
@@ -218,7 +221,7 @@ export async function saveHomeworkReview(queryClient: QueryClient, homeworkId: n
     await refreshSessionQuiet()
     return true
   } catch (error) {
-    toast(message(error, 'Ошибка'))
+    toast(message(error, 'Ошибка'), 'error')
     return false
   }
 }
@@ -272,7 +275,7 @@ export async function submitHomeworkEdit(homeworkId: number, haircut: string, te
       useApp.getState().patch({ selectedHomework: payload.data.homework, imageEpoch: useApp.getState().imageEpoch + 1 })
     }
     closeHomeworkEdit()
-    toast('Сохранено')
+    toast('Сохранено', 'success')
   } catch (error) {
     patchEdit({ busy: false, error: message(error, 'Не удалось сохранить') })
   }

@@ -4,6 +4,7 @@ import { useApp } from '../../app/store'
 import { Header } from '../../ui/Header'
 import { ICO } from '../../ui/icons'
 import { addDraftPhotos, dismissHomeworkSubmit, removeDraftPhoto, submitHomework } from './actions'
+import { useClosingGuard } from '../../ui/useClosingGuard'
 
 const overlay = {
   position: 'fixed',
@@ -131,6 +132,8 @@ export function HomeworkNewScreen() {
   const busy = useApp((s) => s.hwSubmit.status !== 'idle')
   const draft = useApp((s) => s.hwNewDraft)
   const [form, setForm] = useState({ isBonus: false, lesson: '', title: '', description: '' })
+  const uploading = useApp((s) => s.hwSubmit.status === 'loading')
+  useClosingGuard(uploading || draft.length > 0 || Boolean(form.lesson || form.title.trim() || form.description.trim()))
   return (
     <>
       <Header title="Новое задание" onBack={() => useApp.getState().back()} />

@@ -24,8 +24,8 @@ export async function saveTeacherAbout(text: string) {
     await apiPost(platform, '/api/teacher/about', { max_user_id: appUserId, about_me: about })
     const { session } = useApp.getState()
     if (session?.teacher) useApp.getState().patch({ session: { ...session, teacher: { ...session.teacher, about_me: about } } })
-    toast('Сохранено')
+    toast('Сохранено', 'success')
   } catch (error) {
-    toast((error instanceof Error && error.message) || 'Не удалось сохранить')
+    toast((error instanceof Error && error.message) || 'Не удалось сохранить', 'error')
   }
 }

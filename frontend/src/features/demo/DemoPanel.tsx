@@ -23,11 +23,11 @@ export function DemoPanel() {
     setBusy(action)
     try {
       const { message } = await simulate(action)
-      toast(message)
+      toast(message, 'success')
       await queryClient.invalidateQueries()
       await refreshSessionQuiet()
     } catch (error) {
-      toast(error instanceof Error && error.message ? error.message : 'Не удалось выполнить действие')
+      toast(error instanceof Error && error.message ? error.message : 'Не удалось выполнить действие', 'error')
     } finally {
       setBusy(null)
     }
