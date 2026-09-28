@@ -143,6 +143,36 @@ test.describe('MAX Bridge', () => {
     expect(await notifications()).toEqual(['warning'])
   })
 
+  test('демо из MAX: подсказка про чат, вход с подписью MAX и отвязка чата при выходе', async ({ openAs, settle, page }) => {
+    await mockMaxBridge(page)
+    const requests: { path: string; initData: string | undefined }[] = []
+    await page.route('**/api/demo/config', (route) =>
+      route.fulfill({ json: { ok: true, data: { enabled: true, roles: ['admin', 'teacher', 'student'], actions: [] } } }),
+    )
+    await page.route('**/api/demo/login', (route) => {
+      requests.push({ path: '/api/demo/login', initData: route.request().headers()['x-max-init-data'] })
+      return route.fulfill({ json: { ok: true, data: { session_token: 'visual-admin-session', max_user_id: 1, chat_linked: true } } })
+    })
+    await page.route('**/api/demo/leave', (route) => {
+      requests.push({ path: '/api/demo/leave', initData: route.request().headers()['x-max-init-data'] })
+      return route.fulfill({ json: { ok: true, data: { chat_unlinked: true } } })
+    })
+    await openAs(null, '?demo=1')
+    await expect(page.getByText('Уведомления демо придут и в чат с ботом')).toBeVisible()
+
+    await page.getByRole('button', { name: 'Войти как администратор' }).click()
+    await expect(page.locator('.toast')).toHaveText('Уведомления демо будут приходить и в чат с ботом')
+    await settle()
+
+    await page.goto('/?demo=1')
+    await page.evaluate(() => localStorage.removeItem('ba_demo'))
+    await page.goto('/?demo=1')
+    await settle()
+    await page.getByRole('button', { name: 'Выйти из демо' }).click()
+    await expect.poll(() => requests.map((r) => r.path)).toEqual(['/api/demo/login', '/api/demo/leave'])
+    expect(requests.every((r) => r.initData?.startsWith('query_id=visual'))).toBe(true)
+  })
+
   test('в браузере: несохранённое сообщение в чате защищено от закрытия вкладки', async ({ openAs, settle, page }) => {
     await openAs('student')
     await page.locator('.tb', { hasText: 'Чат' }).click()
