@@ -1,5 +1,6 @@
 import { useApp } from '../app/store'
-import { apiUrl, buildHeaders } from './client'
+import { canDownloadInMax, downloadInMax } from '../platform/bridge'
+import { apiPost, apiUrl, buildHeaders } from './client'
 
 const enc = encodeURIComponent
 
@@ -29,6 +30,51 @@ export async function openFile(url: string, onError: (message: string) => void) 
     setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
   } catch {
     onError('Не удалось открыть файл')
+  }
+}
+
+/** Имя файла для сохранения: `madcap-hw12-5.jpg` из `/api/homeworks/12/attachments/5/file`. */
+export const downloadName = (url: string) => {
+  const ids = new URL(url, window.location.origin).pathname.match(/\d+/g) ?? []
+  return `madcap-hw${ids.join('-') || 'file'}.jpg`
+}
+
+/**
+ * Скачивание фото. В MAX файл забирает сам клиент без наших заголовков, поэтому для закрытых файлов
+ * API выдаёт короткоживущую подписанную ссылку; публичные файлы витрины скачиваются по прямой ссылке.
+ * В браузере — обычное сохранение через `<a download>`.
+ */
+export async function downloadFile(url: string, fileName: string, onError: (message: string) => void) {
+  const { platform, appUserId } = useApp.getState()
+  try {
+    if (canDownloadInMax()) {
+      const absolute = new URL(url, window.location.origin)
+      let target = absolute.href
+      if (!absolute.pathname.startsWith('/api/guest/')) {
+        const link = await apiPost<{ url: string }>(platform, '/api/downloads/link', {
+          max_user_id: appUserId,
+          path: absolute.pathname,
+        })
+        target = new URL(apiUrl(link.url), window.location.origin).href
+      }
+      downloadInMax(target, fileName)
+      return
+    }
+    const response = await fetch(url, { headers: buildHeaders(platform) })
+    if (!response.ok) {
+      onError('Не удалось скачать файл')
+      return
+    }
+    const blobUrl = URL.createObjectURL(await response.blob())
+    const link = document.createElement('a')
+    link.href = blobUrl
+    link.download = fileName
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000)
+  } catch {
+    onError('Не удалось скачать файл')
   }
 }
 

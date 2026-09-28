@@ -86,6 +86,8 @@ type AppState = Selection & {
   guestTrack: 'student' | 'intern' | 'barber'
   /** Выбранный в гостевой витрине ученик. */
   guestStudentId: number | null
+  /** Работа из ссылки «Поделиться»: откроется, когда загрузится портфолио ученика. */
+  guestOpenHomeworkId: number | null
 
   /** Переход с сохранением текущего экрана в стек. */
   go: (scr: ScreenName, data?: GoData) => void
@@ -127,6 +129,7 @@ export const useApp = create<AppState>()((set, get) => ({
   lightbox: null,
   guestTrack: 'student',
   guestStudentId: null,
+  guestOpenHomeworkId: null,
   selectedStudent: null,
   selectedHomework: null,
   selectedAdminTeacher: null,

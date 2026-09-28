@@ -5,6 +5,11 @@ import { getStartParam } from '../platform/max'
 import { STORAGE_KEYS, local, session as sessionStore } from '../platform/storage'
 import { useApp } from './store'
 
+const positiveId = (value: string | null): number | null => {
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id > 0 ? id : null
+}
+
 /**
  * Определение платформы, сессии и стартового экрана.
  * Для локальной разработки используется web-session или `?guest=1`.
@@ -27,6 +32,12 @@ export async function bootstrap({ skipDemoEntry = false }: { skipDemoEntry?: boo
   // Публичная витрина не требует MAX или учётной записи.
   if (pageParams.get('guest') === '1') {
     app.replace('guest', { isGuestMode: true, stack: [] })
+    // Ссылка «Поделиться»: сразу портфолио ученика и, если указана, его работа.
+    const studentId = positiveId(pageParams.get('student'))
+    if (studentId) {
+      app.patch({ guestStudentId: studentId, guestOpenHomeworkId: positiveId(pageParams.get('hw')) })
+      useApp.getState().go('guest-student')
+    }
     return
   }
 

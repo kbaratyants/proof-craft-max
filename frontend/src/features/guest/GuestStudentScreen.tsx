@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { guestHomeworkAttachmentFileUrl, guestHomeworkFileUrl, guestStudentAvatarUrl } from '../../api/files'
 import { useApp } from '../../app/store'
 import { studentTrackRu, text } from '../../domain/format'
@@ -10,6 +10,7 @@ import { Header } from '../../ui/Header'
 import { ICO } from '../../ui/icons'
 import { useGuestStudentPortfolio, type GuestHomework, type GuestStudent } from './api'
 import { placeholderPortrait, workPlaceholder } from '../../domain/portrait'
+import { sharePortfolio } from '../share/sharePortfolio'
 
 const back = () => useApp.getState().back()
 
@@ -110,6 +111,15 @@ function Profile({ student, works }: { student: GuestStudent; works: ReactNode }
         />
         <button
           className="hdr-btn"
+          id="guest-share"
+          style={{ position: 'absolute', top: 14, right: 62, color: '#fff', background: 'rgba(0,0,0,.25)', borderRadius: '50%' }}
+          onClick={() => void sharePortfolio(`Портфолио ученика MADCAP Academy: ${student.full_name}`, student.id)}
+          {...iconButtonLabel('Поделиться')}
+        >
+          {ICO.share}
+        </button>
+        <button
+          className="hdr-btn"
           style={{ position: 'absolute', top: 14, right: 14, color: '#fff', background: 'rgba(0,0,0,.25)', borderRadius: '50%' }}
           onClick={back}
           {...iconButtonLabel('Назад')}
@@ -179,6 +189,15 @@ function Profile({ student, works }: { student: GuestStudent; works: ReactNode }
 export function GuestStudentScreen() {
   const studentId = useApp((s) => s.guestStudentId)
   const query = useGuestStudentPortfolio(studentId)
+  const openHomeworkId = useApp((s) => s.guestOpenHomeworkId)
+
+  // Ссылка «Поделиться» на конкретную работу: открываем её, как только загрузилось портфолио.
+  useEffect(() => {
+    if (!openHomeworkId || !query.data) return
+    const homework = query.data.homeworks.find((hw) => hw.id === openHomeworkId)
+    useApp.getState().patch({ guestOpenHomeworkId: null })
+    if (homework) useApp.getState().go('guest-hw-view', { homework })
+  }, [openHomeworkId, query.data])
 
   if (query.isPending) {
     return (

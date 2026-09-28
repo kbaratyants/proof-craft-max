@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react'
-import { openFile } from '../api/files'
+import { downloadFile, downloadName, openFile } from '../api/files'
 import { useApp } from '../app/store'
 import { AuthImg } from './AuthImg'
 import { ICO } from './icons'
@@ -30,6 +30,18 @@ const arrowStyle = {
   alignItems: 'center',
   justifyContent: 'center',
   lineHeight: 0,
+} as const
+
+const linkStyle = {
+  background: 'none',
+  border: 'none',
+  color: 'var(--gold)',
+  fontFamily: 'var(--font-body)',
+  fontSize: 12,
+  fontWeight: 700,
+  cursor: 'pointer',
+  textDecoration: 'underline',
+  padding: 8,
 } as const
 
 /** Клавиатура для просмотра фото: Esc, ←, →. */
@@ -161,28 +173,29 @@ export function Lightbox() {
           </button>
         </>
       )}
-      <button
-        type="button"
-        onClick={(event) => {
-          event.stopPropagation()
-          void openFile(item.full, toast)
-        }}
-        style={{
-          position: 'absolute',
-          bottom: 22,
-          background: 'none',
-          border: 'none',
-          color: 'var(--gold)',
-          fontFamily: 'var(--font-body)',
-          fontSize: 12,
-          fontWeight: 700,
-          cursor: 'pointer',
-          textDecoration: 'underline',
-          padding: 8,
-        }}
-      >
-        Открыть оригинал
-      </button>
+      <div style={{ position: 'absolute', bottom: 22, display: 'flex', gap: 18 }}>
+        <button
+          type="button"
+          id="ba-lightbox-download"
+          onClick={(event) => {
+            event.stopPropagation()
+            void downloadFile(item.full, downloadName(item.full), (message) => toast(message, 'error'))
+          }}
+          style={linkStyle}
+        >
+          Скачать
+        </button>
+        <button
+          type="button"
+          onClick={(event) => {
+            event.stopPropagation()
+            void openFile(item.full, toast)
+          }}
+          style={linkStyle}
+        >
+          Открыть оригинал
+        </button>
+      </div>
     </div>
   )
 }

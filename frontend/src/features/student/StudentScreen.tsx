@@ -15,6 +15,7 @@ import { FeedbackPromo } from './FeedbackPromo'
 import { HomeTab } from './HomeTab'
 import { HomeworksGrid } from './HomeworksGrid'
 import { ProfileEditModal } from './ProfileEditModal'
+import { sharePortfolio } from '../share/sharePortfolio'
 
 const logoutButton = (
   <button className="hdr-btn" style={{ color: 'var(--dim)' }} onClick={logout} {...iconButtonLabel('Выйти')}>
@@ -100,7 +101,19 @@ function ProfileTab() {
             Сохранить
           </button>
         </section>
-        <button type="button" className="btn bs btn-w" style={{ marginTop: 14 }} onClick={openProfileEdit}>
+        {st && (
+          <button
+            type="button"
+            id="share-portfolio"
+            className="btn bf btn-w"
+            style={{ marginTop: 14, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+            onClick={() => void sharePortfolio(`Моё портфолио в MADCAP Academy — ${st.full_name}`, st.id)}
+          >
+            {ICO.share}
+            Поделиться портфолио
+          </button>
+        )}
+        <button type="button" className="btn bs btn-w" style={{ marginTop: 10 }} onClick={openProfileEdit}>
           Редактировать данные
         </button>
         <button type="button" className="btn bs btn-w" style={{ marginTop: 10 }} onClick={toggleTheme}>

@@ -6,9 +6,12 @@ import { ICO } from '../../ui/icons'
 import { Lightbox } from '../../ui/Lightbox'
 import { MediaButtons } from '../../ui/MediaButtons'
 import { PhotoStrip } from '../../ui/PhotoStrip'
+import { sharePortfolio } from '../share/sharePortfolio'
+import { iconButtonLabel } from '../../ui/a11y'
 
 export function GuestHomeworkScreen() {
   const hw = useApp((s) => s.selectedHomework) as HomeworkBase | null
+  const studentId = useApp((s) => s.guestStudentId)
   if (!hw) return null
   const photoItems = homeworkPhotoItems(hw, guestHomeworkFileUrl, guestHomeworkAttachmentFileUrl)
   const buttons = homeworkMediaButtons(
@@ -19,7 +22,22 @@ export function GuestHomeworkScreen() {
   )
   return (
     <>
-      <Header title="Работа" onBack={() => useApp.getState().back()} />
+      <Header
+        title="Работа"
+        onBack={() => useApp.getState().back()}
+        right={
+          studentId ? (
+            <button
+              className="hdr-btn"
+              id="guest-hw-share"
+              onClick={() => void sharePortfolio(`Работа ученика MADCAP Academy: ${homeworkTitle(hw)}`, studentId, hw.id)}
+              {...iconButtonLabel('Поделиться')}
+            >
+              {ICO.share}
+            </button>
+          ) : undefined
+        }
+      />
       <div className="scr fi" style={{ padding: 14 }}>
         <PhotoStrip items={photoItems} />
         <div className="card">
