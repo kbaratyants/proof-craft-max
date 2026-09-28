@@ -1,7 +1,7 @@
 import { apiGet, apiPost } from '../api/client'
 import type { Session, WebAuthSession } from '../api/types'
 import { detectPlatform } from '../platform/detect'
-import { getStartParam } from '../platform/max'
+import { getStartParam, isMaxMiniApp } from '../platform/max'
 import { STORAGE_KEYS, local, session as sessionStore } from '../platform/storage'
 import { useApp } from './store'
 
@@ -110,6 +110,7 @@ export function logout() {
     void apiPost(platform, '/api/web-auth/logout', {}).catch(() => {})
     local.remove(STORAGE_KEYS.webSession)
   }
+  if (local.get(STORAGE_KEYS.demo) === '1' && isMaxMiniApp()) void apiPost(platform, '/api/demo/leave', {}).catch(() => {})
   local.remove(STORAGE_KEYS.demo)
   sessionStore.remove(STORAGE_KEYS.guest)
   useApp.getState().patch({

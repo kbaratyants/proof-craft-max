@@ -1,9 +1,12 @@
 import { bootstrap } from '../../app/bootstrap'
 import { useApp } from '../../app/store'
 import { STORAGE_KEYS, local } from '../../platform/storage'
+import { isMaxMiniApp } from '../../platform/max'
+import { leaveDemoChat } from './api'
 import { DemoAccess, useDemoConfig } from './DemoAccess'
 
 const leaveDemo = () => {
+  leaveDemoChat()
   local.remove(STORAGE_KEYS.demo)
   local.remove(STORAGE_KEYS.webSession)
   useApp.getState().patch({ stack: [] })
@@ -28,6 +31,11 @@ export function DemoRolesScreen() {
         <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, lineHeight: 1.55, color: 'var(--dim)', margin: '0 0 18px' }}>
           Выберите роль. Внутри будет кнопка «Демо»: она создаёт новые работы, заявки и сообщения в реальном времени, а «Сменить роль» вернёт сюда.
         </p>
+        {isMaxMiniApp() && (
+          <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, lineHeight: 1.55, color: 'var(--dim)', margin: '-8px 0 18px' }}>
+            Уведомления демо придут и в чат с ботом, а команды бота (/stats, /teacher, /me) будут работать от выбранной роли.
+          </p>
+        )}
         {config.isSuccess && !config.data.enabled ? (
           <p style={{ fontFamily: 'var(--font-body)', fontSize: 12, color: 'var(--danger)' }}>Демо-режим на сервере выключен.</p>
         ) : (

@@ -1,7 +1,9 @@
 import { apiGet, apiPost } from '../../api/client'
 import { bootstrap } from '../../app/bootstrap'
 import { useApp } from '../../app/store'
+import { isMaxMiniApp } from '../../platform/max'
 import { STORAGE_KEYS, local } from '../../platform/storage'
+import { toast } from '../../ui/toast'
 
 export type DemoRole = 'admin' | 'teacher' | 'student'
 export type DemoAction = 'homework' | 'student_application' | 'teacher_application' | 'chat_message' | 'profile_edit'
@@ -27,11 +29,19 @@ export const fetchDemoConfig = () => apiGet<DemoConfig>(standalone, '/api/demo/c
 
 /** Вход жюри за демо-пользователя: обычная web-сессия плюс отметка демо-режима. */
 export async function demoLogin(role: DemoRole) {
-  const data = await apiPost<{ session_token: string; max_user_id: number }>(standalone, '/api/demo/login', { role })
+  const data = await apiPost<{ session_token: string; max_user_id: number; chat_linked?: boolean }>(standalone, '/api/demo/login', { role })
   local.set(STORAGE_KEYS.webSession, data.session_token)
   local.set(STORAGE_KEYS.demo, '1')
   useApp.getState().go('loading')
   await bootstrap()
+  // Вход из MAX: бот уже прислал приветствие и дальше будет дублировать уведомления демо в чат.
+  if (data.chat_linked) toast('Уведомления демо будут приходить и в чат с ботом', 'success')
+}
+
+/** Выход из демо: бот перестаёт писать от демо-роли и снова отвечает от учётной записи MAX. */
+export function leaveDemoChat() {
+  if (!isMaxMiniApp()) return
+  void apiPost(standalone, '/api/demo/leave', {}).catch(() => {})
 }
 
 export async function simulate(action: DemoAction) {

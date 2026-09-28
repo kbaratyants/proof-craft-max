@@ -13,8 +13,9 @@ type PlatformLike = Pick<Platform, 'platform'> & Partial<Platform>
 export function buildHeaders(platform: PlatformLike | null): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (platform?.webSessionToken) headers['X-Web-Session'] = platform.webSessionToken
+  // Внутри MAX подпись уходит всегда: в демо-сессии по ней сервер узнаёт жюри и пишет ему в чат.
   const initData = getMax()?.initData
-  if (platform?.platform === 'max' && initData) headers['X-Max-Init-Data'] = initData
+  if (initData) headers['X-Max-Init-Data'] = initData
   return headers
 }
 
