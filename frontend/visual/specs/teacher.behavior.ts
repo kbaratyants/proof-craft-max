@@ -50,6 +50,27 @@ test.describe('преподаватель: поведение', () => {
     })
   })
 
+  test('после исправления поле замечания пустое, прошлое замечание — только в истории', async ({ page, mutations }) => {
+    // Ученик сдал исправление: работа снова на проверке, последний отзыв — прошлый отказ.
+    await page.route('**/api/teacher/student-homeworks?*', async (route) => {
+      const response = await route.fetch()
+      const body = await response.json()
+      const homeworks = (body.data ?? body).homeworks as { haircut_name: string; status: string }[]
+      for (const hw of homeworks) if (hw.haircut_name === 'Андеркат') hw.status = 'pending'
+      await route.fulfill({ response, json: body })
+    })
+    await tab(page, 'Ученики')
+    await page.locator('.card', { hasText: 'Анна Смирнова' }).first().click()
+    await page.locator('.card', { hasText: 'Андеркат' }).last().click()
+    await expect(page.getByText('Переход на висках рваный, поправьте окантовку.')).toBeVisible()
+    const comment = page.getByRole('textbox', { name: /Комментарий \(обязателен/ })
+    await expect(comment).toHaveValue('')
+    await page.locator('#hw-star-5').click()
+    await page.locator('#hw-submit-btn').click()
+    await expect.poll(() => mutations.length).toBe(1)
+    expect(mutations[0].body).not.toHaveProperty('comment')
+  })
+
   test('принятие работы с оценкой', async ({ page, mutations }) => {
     await openPendingWork(page)
     await page.locator('#hw-star-5').click()

@@ -244,9 +244,9 @@ function CommentsPanel({ hw, isOwner, canComment }: { hw: StudentHomework; isOwn
 
 function ReviewPanel({ hw }: { hw: StudentHomework }) {
   const queryClient = useQueryClient()
-  const review = hw.latest_review
   const [rating, setRating] = useState(0)
-  const [comment, setComment] = useState(review?.comment && review.status !== 'approved' ? review.comment : '')
+  // Всегда пустое: прошлое замечание показывается в истории работы и не должно попасть в новый ответ.
+  const [comment, setComment] = useState('')
   // Кнопка пересчитывается только после действий пользователя: до них она неактивна.
   const [touched, setTouched] = useState(false)
   const ready = touched && (rating > 0 || comment.trim().length > 0)
