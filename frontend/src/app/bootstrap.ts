@@ -3,12 +3,18 @@ import type { Session, WebAuthSession } from '../api/types'
 import { detectPlatform } from '../platform/detect'
 import { getStartParam, isMaxMiniApp } from '../platform/max'
 import { STORAGE_KEYS, local, session as sessionStore } from '../platform/storage'
+import { parseGuestStartParam, positiveId } from './guestLink'
 import { useApp } from './store'
 
-const positiveId = (value: string | null): number | null => {
-  const id = Number(value)
-  return Number.isSafeInteger(id) && id > 0 ? id : null
-}
+/**
+ * Параметр запуска витрины (`startapp=guest_…`) действует один раз: после выхода из витрины
+ * или выхода из аккаунта повторный bootstrap идёт обычным путём, хотя MAX всё ещё отдаёт тот же start_param.
+ */
+let guestStartParamUsed = false
+let openedFromGuestStartParam = false
+
+/** Витрину открыли ссылкой «Поделиться» из MAX: выход из неё — обычный запуск приложения. */
+export const isGuestFromStartParam = () => openedFromGuestStartParam
 
 /**
  * Определение платформы, сессии и стартового экрана.
@@ -29,13 +35,16 @@ export async function bootstrap({ skipDemoEntry = false }: { skipDemoEntry?: boo
     return
   }
 
-  // Публичная витрина не требует MAX или учётной записи.
-  if (pageParams.get('guest') === '1') {
+  // Публичная витрина не требует MAX или учётной записи: `?guest=1` на сайте или `startapp=guest_…` в MAX.
+  const fromStartParam = guestStartParamUsed ? null : parseGuestStartParam(getStartParam())
+  guestStartParamUsed = true
+  openedFromGuestStartParam = fromStartParam != null
+  if (pageParams.get('guest') === '1' || fromStartParam) {
     app.replace('guest', { isGuestMode: true, stack: [] })
     // Ссылка «Поделиться»: сразу портфолио ученика и, если указана, его работа.
-    const studentId = positiveId(pageParams.get('student'))
-    if (studentId) {
-      app.patch({ guestStudentId: studentId, guestOpenHomeworkId: positiveId(pageParams.get('hw')) })
+    const target = fromStartParam ?? { studentId: positiveId(pageParams.get('student')), homeworkId: positiveId(pageParams.get('hw')) }
+    if (target.studentId) {
+      app.patch({ guestStudentId: target.studentId, guestOpenHomeworkId: target.homeworkId })
       useApp.getState().go('guest-student')
     }
     return

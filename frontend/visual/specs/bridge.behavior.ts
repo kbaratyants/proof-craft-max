@@ -16,7 +16,8 @@ const mockMaxBridge = (page: Page) =>
       __bridgeCalls: calls,
       WebApp: {
         initData: 'query_id=visual&user=%7B%22id%22%3A777%7D&hash=visual',
-        initDataUnsafe: { user: { id: 777 } },
+        // Параметр запуска (startapp=…) тест задаёт через localStorage перед перезагрузкой.
+        initDataUnsafe: { user: { id: 777 }, start_param: localStorage.getItem('__visual_start_param') ?? undefined },
         ready: () => {},
         HapticFeedback: {
           impactOccurred: record('impactOccurred'),
@@ -58,6 +59,7 @@ test.describe('MAX Bridge', () => {
     await page.getByRole('button', { name: /^Фейд/ }).click()
     await settle()
     await page.getByRole('button', { name: 'Поделиться' }).click()
+    await expect.poll(async () => (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent').length).toBe(2)
 
     const shares = (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent')
     expect(shares).toHaveLength(2)
@@ -68,6 +70,75 @@ test.describe('MAX Bridge', () => {
     expect(work.link).toMatch(new RegExp(`^${portfolio.link.replace(/[.?]/g, '\\$&')}&hw=\\d+$`))
   })
 
+  test('в MAX с ником бота «Поделиться» ведёт в мини-приложение, без ника — на сайт', async ({ openAs, settle, page }) => {
+    await mockMaxBridge(page)
+    let bot: string | null = 'academy_bot'
+    await page.route('**/api/public/config', (route) => route.fulfill({ json: { ok: true, data: { bot_username: bot } } }))
+    await openAs(null, '?guest=1')
+    await openAnnaPortfolio(page)
+    await page.getByRole('button', { name: 'Поделиться' }).click()
+    await page.getByRole('button', { name: /^Фейд/ }).click()
+    await settle()
+    await page.getByRole('button', { name: 'Поделиться' }).click()
+    await expect.poll(async () => (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent').length).toBe(2)
+    const [portfolio, work] = (await bridgeCalls(page))
+      .filter(([name]) => name === 'shareMaxContent')
+      .map(([, params]) => (params as { link: string }).link)
+    expect(portfolio).toMatch(/^https:\/\/max\.ru\/academy_bot\?startapp=guest_\d+$/)
+    expect(work).toMatch(new RegExp(`^${portfolio!.replace(/[.?]/g, '\\$&')}_hw_\\d+$`))
+
+    // Без ника бота ссылка на мини-приложение невозможна — остаётся сайт.
+    bot = null
+    await page.reload()
+    await openAnnaPortfolio(page)
+    await page.getByRole('button', { name: 'Поделиться' }).click()
+    await expect.poll(async () => (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent').length).toBe(1)
+    const [[, params]] = (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent')
+    expect((params as { link: string }).link).toMatch(/^http:\/\/[^/]+\/\?guest=1&student=\d+$/)
+  })
+
+  test('startapp=guest_… открывает витрину без входа; мусор и demo не ломают запуск', async ({ openAs, settle, page }) => {
+    await mockMaxBridge(page)
+    await page.route('**/api/public/config', (route) => route.fulfill({ json: { ok: true, data: { bot_username: 'academy_bot' } } }))
+    await page.route('**/api/demo/config', (route) =>
+      route.fulfill({ json: { ok: true, data: { enabled: true, roles: ['admin', 'teacher', 'student'], actions: [] } } }),
+    )
+    await openAs(null, '?guest=1')
+    await openAnnaPortfolio(page)
+    await page.getByRole('button', { name: /^Фейд/ }).click()
+    await settle()
+    await page.getByRole('button', { name: 'Поделиться' }).click()
+    await expect.poll(async () => (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent').length).toBe(1)
+    const [[, params]] = (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent')
+    const startParam = new URL((params as { link: string }).link).searchParams.get('startapp')!
+    const studentParam = startParam.replace(/_hw_\d+$/, '')
+
+    const launch = async (value: string) => {
+      await page.evaluate((v) => localStorage.setItem('__visual_start_param', v), value)
+      await page.goto('/')
+      await settle()
+    }
+
+    await launch(startParam)
+    await expect(page.locator('.hdr h2')).toHaveText('Работа')
+    await expect(page.getByText('Фейд', { exact: true })).toBeVisible()
+    await page.getByRole('button', { name: 'Назад' }).click()
+    await expect(page.getByRole('heading', { level: 1, name: 'Анна Смирнова' })).toBeVisible()
+
+    await launch(studentParam)
+    await expect(page.getByRole('heading', { level: 1, name: 'Анна Смирнова' })).toBeVisible()
+
+    // Мусор — обычный запуск: пользователь MAX без учётной записи видит выбор роли, а не витрину.
+    for (const garbage of ['guest_abc', 'guest_0', 'guest_1_hw_', 'guest_1_hw_0', 'xguest_1']) {
+      await launch(garbage)
+      await expect(page.getByRole('heading', { level: 1, name: 'Анна Смирнова' })).toBeHidden()
+      await expect(page.getByRole('heading', { name: /Работы наших/ })).toBeHidden()
+    }
+
+    await launch('demo')
+    await expect(page.getByRole('heading', { name: 'Демо-академия' })).toBeVisible()
+  })
+
   test('ссылка «Поделиться» открывает работу, «Назад» ведёт в портфолио и витрину', async ({ openAs, settle, page }) => {
     await mockMaxBridge(page)
     await openAs(null, '?guest=1')
@@ -75,6 +146,7 @@ test.describe('MAX Bridge', () => {
     await page.getByRole('button', { name: /^Фейд/ }).click()
     await settle()
     await page.getByRole('button', { name: 'Поделиться' }).click()
+    await expect.poll(async () => (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent').length).toBe(1)
     const [[, params]] = (await bridgeCalls(page)).filter(([name]) => name === 'shareMaxContent')
     const link = new URL((params as { link: string }).link)
 
