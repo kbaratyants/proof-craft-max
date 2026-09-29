@@ -6,6 +6,7 @@ import { DownloadsModule } from './downloads/downloads.module.js'
 import { HealthModule } from './health/health.module.js'
 import { HomeworkFilesModule } from './homework-files/homework-files.module.js'
 import { NotificationsModule } from './notifications/notifications.module.js'
+import { PublicConfigModule } from './public-config/public-config.module.js'
 import { PublicPortfolioModule } from './public-portfolio/public-portfolio.module.js'
 import { ProfilesModule } from './profiles/profiles.module.js'
 import { HomeworkCommentsModule } from './homework-comments/homework-comments.module.js'
@@ -26,6 +27,7 @@ import { TeacherCabinetModule } from './teacher-cabinet/teacher-cabinet.module.j
     HealthModule,
     HomeworkFilesModule,
     NotificationsModule,
+    PublicConfigModule,
     PublicPortfolioModule,
     ProfilesModule,
     RegistrationModule,

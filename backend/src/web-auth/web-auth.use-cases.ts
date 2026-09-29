@@ -1,6 +1,7 @@
 import crypto from 'node:crypto'
 import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common'
 import { invalidParameters } from '../common/invalid-parameters.error.js'
+import { maxBotUsername } from '../common/max-config.js'
 import { sqliteTimestamp } from '../common/sqlite-timestamp.js'
 import { UserIdentityRepository } from '../persistence/users/user-identity.repository.js'
 import { WebAuthRepository } from './web-auth.repository.js'
@@ -28,7 +29,7 @@ export class WebAuthUseCases {
   async start(rawBody: unknown): Promise<object> {
     const provider = (rawBody as { provider?: unknown } | null)?.provider
     if (provider !== 'max') return invalidParameters()
-    const botUsername = String(process.env.MAX_BOT_USERNAME || '').replace(/^@/, '').trim()
+    const botUsername = maxBotUsername()
     if (!botUsername) {
       throw fail(HttpStatus.SERVICE_UNAVAILABLE, 'Вход через MAX ещё не настроен на сервере.')
     }
