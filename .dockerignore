@@ -12,3 +12,4 @@ docs
 backend/test
 *.log
 .DS_Store
+presentation-assets
