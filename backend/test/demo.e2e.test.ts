@@ -120,6 +120,86 @@ test('эмулятор доступен только в демо-сессии', 
   assert.equal(response.statusCode, 401)
 })
 
+const rows = <T>(sql: string, ...params: unknown[]): T[] => {
+  const db = new Database(databasePath)
+  try {
+    return db.prepare(sql).all(...params) as T[]
+  } finally {
+    db.close()
+  }
+}
+const run = (sql: string, ...params: unknown[]) => {
+  const db = new Database(databasePath)
+  try {
+    db.prepare(sql).run(...params)
+  } finally {
+    db.close()
+  }
+}
+/** Ученики демо-преподавателя (под ним входит жюри). */
+const demoTeacherStudents = () =>
+  rows<{ id: number; lessons_count: number }>(
+    `SELECT s.id, s.lessons_count FROM students s
+       JOIN student_teachers st ON st.student_id = s.id
+       JOIN teachers t ON t.id = st.teacher_id
+       JOIN users u ON u.id = t.user_id
+      WHERE u.max_user_id = ? AND s.status = 'studying'`,
+    DEMO_ACCOUNTS.teacher,
+  )
+const simulateHomework = async () => {
+  const teacher = await login('teacher')
+  return await post('/api/demo/simulate', { max_user_id: teacher.max_user_id, action: 'homework' }, { 'x-web-session': teacher.session_token })
+}
+const lastHomework = () => rows<{ student_id: number; lesson_number: number | null; is_bonus: number }>(`SELECT student_id, lesson_number, is_bonus FROM homeworks ORDER BY id DESC LIMIT 1`)[0]!
+
+test('«Ученик сдаёт работу» выбирает ученика демо-преподавателя, под которым входит жюри', async () => {
+  const own = new Set(demoTeacherStudents().map((s) => s.id))
+  assert.ok(own.size > 0)
+  for (let i = 0; i < 8; i += 1) {
+    const response = await simulateHomework()
+    assert.equal(response.statusCode, 200, response.body)
+    assert.ok(own.has(lastHomework().student_id), `работа ушла ученику ${lastHomework().student_id} не из группы демо-преподавателя`)
+  }
+})
+
+test('после исчерпания уроков и с висящими доп. заданиями эмулятор сдаёт новый урок сверх программы', async () => {
+  const students = demoTeacherStudents()
+  for (const student of students) {
+    for (let lesson = 1; lesson <= student.lessons_count; lesson += 1) {
+      const taken = rows(`SELECT 1 FROM homeworks WHERE student_id = ? AND lesson_number = ? AND status != 'rejected'`, student.id, lesson).length
+      if (!taken) run(`INSERT INTO homeworks (student_id, lesson_number, is_bonus, content_type, text_content, status) VALUES (?, ?, 0, 'text', 'занято', 'approved')`, student.id, lesson)
+    }
+    if (!rows(`SELECT 1 FROM homeworks WHERE student_id = ? AND is_bonus = 1 AND status = 'pending'`, student.id).length) {
+      run(`INSERT INTO homeworks (student_id, lesson_number, is_bonus, content_type, text_content, status) VALUES (?, NULL, 1, 'text', 'бонус', 'pending')`, student.id)
+    }
+  }
+  const before = new Map(students.map((s) => [s.id, s.lessons_count]))
+  for (let i = 0; i < 3; i += 1) {
+    const response = await simulateHomework()
+    assert.equal(response.statusCode, 200, response.body)
+    const hw = lastHomework()
+    const lessonsNow = rows<{ lessons_count: number }>(`SELECT lessons_count FROM students WHERE id = ?`, hw.student_id)[0]!.lessons_count
+    assert.ok(before.has(hw.student_id))
+    assert.equal(hw.is_bonus, 0)
+    assert.equal(hw.lesson_number, lessonsNow)
+    assert.equal(lessonsNow, before.get(hw.student_id)! + 1)
+    before.set(hw.student_id, lessonsNow)
+  }
+})
+
+test('без учеников демо-преподавателя работу сдаёт ученик другого преподавателя', async () => {
+  const own = demoTeacherStudents().map((s) => s.id)
+  run(
+    `DELETE FROM student_teachers WHERE teacher_id = (SELECT t.id FROM teachers t JOIN users u ON u.id = t.user_id WHERE u.max_user_id = ?)`,
+    DEMO_ACCOUNTS.teacher,
+  )
+  const response = await simulateHomework()
+  assert.equal(response.statusCode, 200, response.body)
+  const hw = lastHomework()
+  assert.ok(!own.includes(hw.student_id))
+  assert.ok(rows(`SELECT 1 FROM student_teachers WHERE student_id = ?`, hw.student_id).length > 0)
+})
+
 test('reset пересоздаёт академию из снимка, если он задан', async () => {
   const snapshotPath = join(temporaryRoot, 'snapshot.json')
   await writeFile(snapshotPath, JSON.stringify({

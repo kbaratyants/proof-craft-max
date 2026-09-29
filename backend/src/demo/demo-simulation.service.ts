@@ -103,10 +103,54 @@ export class DemoSimulationService {
     return students[Math.floor(Math.random() * students.length)]!
   }
 
+  /**
+   * Кого эмулятор заставит сдать работу. Жюри проверяет работы как демо-преподаватель, поэтому
+   * сначала его ученики; если их нет — любые демо-ученики с преподавателем.
+   */
+  private async homeworkCandidates() {
+    const demoStudying = { status: 'studying', users: { max_user_id: { gte: BigInt(DEMO_ID_BASE) } } }
+    const select = {
+      id: true, full_name: true, lessons_count: true,
+      users: { select: { max_user_id: true } },
+      homeworks: { select: { lesson_number: true, status: true, is_bonus: true } },
+    } as const
+    const own = await this.prisma.students.findMany({
+      where: { ...demoStudying, student_teachers: { some: { teachers: { users: { max_user_id: BigInt(DEMO_ACCOUNTS.teacher) } } } } },
+      select,
+    })
+    if (own.length) return own
+    const any = await this.prisma.students.findMany({ where: { ...demoStudying, student_teachers: { some: {} } }, select })
+    if (!any.length) throw fail(HttpStatus.CONFLICT, 'Нет обучающихся демо-учеников с преподавателем.')
+    return any
+  }
+
+  /**
+   * Ученик и урок, которые точно пройдут правило «одна работа на проверке на урок или доп. задание»:
+   * свободный урок → доп. задание, если нет висящего → новый урок сверх программы (только у демо-ученика).
+   * Демо-академия общая для всех жюри, поэтому кнопка не должна упираться в исчерпанные уроки.
+   */
+  private async homeworkTarget() {
+    const candidates = await this.homeworkCandidates()
+    const withFreeLesson = candidates
+      .map((student) => {
+        const used = new Set(student.homeworks.filter((h) => h.status !== 'rejected').map((h) => h.lesson_number))
+        const lesson = Array.from({ length: student.lessons_count }, (_, i) => i + 1).find((n) => !used.has(n))
+        return { student, lesson }
+      })
+      .filter((c): c is { student: (typeof candidates)[number]; lesson: number } => c.lesson != null)
+    if (withFreeLesson.length) return pick(withFreeLesson)
+
+    const bonusFree = candidates.filter((s) => !s.homeworks.some((h) => Boolean(h.is_bonus) && h.status === 'pending'))
+    if (bonusFree.length) return { student: pick(bonusFree), lesson: null }
+
+    const student = pick(candidates)
+    const lesson = student.lessons_count + 1
+    await this.prisma.students.update({ where: { id: student.id }, data: { lessons_count: lesson } })
+    return { student, lesson }
+  }
+
   private async simulateHomework(): Promise<string> {
-    const student = await this.randomStudent()
-    const used = new Set(student.homeworks.filter((h) => h.status !== 'rejected').map((h) => h.lesson_number))
-    const lesson = Array.from({ length: student.lessons_count }, (_, i) => i + 1).find((n) => !used.has(n)) ?? null
+    const { student, lesson } = await this.homeworkTarget()
     const photos = Math.random() < 0.35 ? 2 : 1
     const files = []
     for (let i = 0; i < photos; i += 1) {
